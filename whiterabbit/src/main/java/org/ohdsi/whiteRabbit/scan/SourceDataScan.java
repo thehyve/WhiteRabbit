@@ -41,6 +41,7 @@ import org.ohdsi.databases.DbType;
 import org.ohdsi.databases.RichConnection;
 import org.ohdsi.databases.RichConnection.QueryResult;
 import org.ohdsi.rabbitInAHat.dataModel.Table;
+import org.ohdsi.utilities.ScanFieldName;
 import org.ohdsi.utilities.StringUtilities;
 import org.ohdsi.utilities.collections.CountingSet;
 import org.ohdsi.utilities.collections.CountingSet.Count;
@@ -121,7 +122,7 @@ public class SourceDataScan {
 		// Create overview sheet
 		Sheet overviewSheet = workbook.createSheet("Overview");
 		if (!scanValues) {
-			addRow(overviewSheet, "Table", "Field", "Type", "N rows");
+			addRow(overviewSheet, ScanFieldName.TABLE, ScanFieldName.FIELD, ScanFieldName.TYPE, ScanFieldName.N_ROWS);
 			for (String table : tables) {
 				for (FieldInfo fieldInfo : tableToFieldInfos.get(table)) {
                     addRow(overviewSheet, table, fieldInfo.name, fieldInfo.getTypeDescription(), Long.valueOf(fieldInfo.rowCount));
@@ -129,7 +130,13 @@ public class SourceDataScan {
 				addRow(overviewSheet, "");
 			}
 		} else {
-			addRow(overviewSheet, "Table", "Field", "Type", "Max length", "N rows", "N rows checked", "Fraction empty", "N unique values", "Fraction unique values");
+			addRow(overviewSheet,
+					ScanFieldName.TABLE, ScanFieldName.FIELD, ScanFieldName.TYPE, ScanFieldName.MAX_LENGTH,
+					ScanFieldName.N_ROWS, ScanFieldName.N_ROWS_CHECKED, ScanFieldName.FRACTION_EMPTY,
+					ScanFieldName.AVERAGE, ScanFieldName.STDEV,
+					ScanFieldName.MIN, ScanFieldName.Q1, ScanFieldName.Q2, ScanFieldName.Q3, ScanFieldName.MAX
+					, "N unique values", "Fraction unique values"
+			);
 			int sheetIndex = 0;
 			Map<String, String> sheetNameLookup = new HashMap<>();
 			for (String tableName : tables) {
@@ -140,10 +147,10 @@ public class SourceDataScan {
 				sheetNameLookup.put(tableName, sheetName);
 
 				for (FieldInfo fieldInfo : tableToFieldInfos.get(tableName)) {
-                    addRow(overviewSheet, tableNameIndexed, fieldInfo.name, fieldInfo.getTypeDescription(), Integer.valueOf(fieldInfo.maxLength), Long.valueOf(fieldInfo.rowCount),
-                            Long.valueOf(fieldInfo.nProcessed), fieldInfo.getFractionEmpty(), fieldInfo.getUniqueCount(), fieldInfo.getFractionUnique());
-					this.setCellStyles(overviewSheet, percentageStyle, 6, 8);
-                }
+					fieldInfo.wrapUp(); // if not already done
+					addRow(overviewSheet, tableNameIndexed, fieldInfo.name, fieldInfo.getTypeDescription(), Integer.valueOf(fieldInfo.maxLength), Long.valueOf(fieldInfo.rowCount),
+							Long.valueOf(fieldInfo.nProcessed), fieldInfo.getFractionEmpty(), fieldInfo.mean, fieldInfo.stdev, fieldInfo.min, fieldInfo.q1, fieldInfo.q2, fieldInfo.q3, fieldInfo.max, fieldInfo.getUniqueCount(), fieldInfo.getFractionUnique());
+				}
 				addRow(overviewSheet, "");
 				sheetIndex += 1;
 			}
@@ -223,9 +230,8 @@ public class SourceDataScan {
 						break;
 					}
 				}
-				for (FieldInfo fieldInfo : fieldInfos) {
-					fieldInfo.trim();
-				}
+				for (FieldInfo fieldInfo : fieldInfos)
+					fieldInfo.wrapUp();
 			} catch (Exception e) {
 				System.out.println("Error: " + e.getMessage());
 			} finally {
@@ -358,7 +364,7 @@ public class SourceDataScan {
 				break;
 		}
 		for (FieldInfo fieldInfo : fieldInfos)
-			fieldInfo.trim();
+			fieldInfo.wrapUp();
 
 		return fieldInfos;
 	}
@@ -378,9 +384,26 @@ public class SourceDataScan {
 		public boolean				isDate			= true;
 		public boolean				isFreeText		= false;
 		public boolean				tooManyValues	= false;
+		public double				mean			= Double.NaN;
+		public double				stdev			= Double.NaN;
+		public double				min				= Double.NEGATIVE_INFINITY;
+		public double				max				= Double.POSITIVE_INFINITY;
+		public Double				q1				= Double.NaN;
+		public Double				q2				= Double.NaN;
+		public Double				q3				= Double.NaN;
+		public boolean 				isWrappedUp 	= false;
+
 
 		public FieldInfo(String name) {
 			this.name = name;
+		}
+
+		public void wrapUp() {
+			if (!isWrappedUp) {
+				calculateNumericMetrics();
+				trim();
+				isWrappedUp = true;
+			}
 		}
 
 		public void trim() {
@@ -482,6 +505,11 @@ public class SourceDataScan {
 				tooManyValues = true;
 				this.trim();
 			}
+
+			// Reset if wrapUp was called before
+			if (isWrappedUp) {
+				isWrappedUp = false;
+			}
 		}
 
 		public List<Pair<String, Integer>> getSortedValuesWithoutSmallValues() {
@@ -497,6 +525,65 @@ public class SourceDataScan {
 			}
 			return result;
 		}
+
+		public void calculateNumericMetrics() {
+			// Only numeric columns
+			// TODO: also calculate summary statistics for dates
+			if (!(isReal || isInteger)) {
+				return;
+			}
+
+			if (tooManyValues) {
+				System.out.println("Estimations! Increase 'maxValues' for a better estimate");
+			}
+
+			// Unpack the values to  a list of pairs; calculate sum, total count and mean
+			int totalFrequencyCount = 0;
+			double sum = 0d;
+			List<Pair<Double, Integer>> valueCountPairs = new ArrayList<>();
+			for (Map.Entry<String, Count> entry : valueCounts.key2count.entrySet()) {
+				if (entry.getKey().isEmpty()) {
+					continue;
+				}
+				double value = Double.parseDouble(entry.getKey());
+				int count = entry.getValue().count;
+				valueCountPairs.add(new Pair<>(value, count));
+				sum += value * count;
+				totalFrequencyCount += count;
+			}
+
+			mean = sum / totalFrequencyCount;
+
+			// Sort by the numeric values
+			valueCountPairs.sort(Comparator.comparing(Pair::getItem1));
+
+			// TODO: handle the case where quartile is the average of two values.
+			//  Then the previous runningTotal is just below the quartile and the current is just above.
+			// Calculate quartiles and total variance
+			int runningTotal = 0;
+			double varianceSum = 0;
+			for (Pair<Double, Integer> valueCount : valueCountPairs) {
+				runningTotal += valueCount.getItem2();
+				if (q1.isNaN() && runningTotal >= 0.25 * (totalFrequencyCount + 1)) {
+					q1 = valueCount.getItem1();
+				}
+				if (q2.isNaN() && runningTotal >= 0.5 * (totalFrequencyCount + 1)) {
+					q2 = valueCount.getItem1();
+				}
+				if (q3.isNaN() && runningTotal >= 0.75 * (totalFrequencyCount + 1)) {
+					q3 = valueCount.getItem1();
+				}
+				varianceSum += Math.pow(valueCount.getItem1() - mean, 2d) * valueCount.getItem2();
+			}
+
+			if (valueCountPairs.size() > 0) {
+				min = valueCountPairs.get(0).getItem1();
+				max = valueCountPairs.get(valueCountPairs.size() - 1).getItem1();
+			}
+			if (totalFrequencyCount > 0) {
+				stdev = Math.sqrt(varianceSum / totalFrequencyCount);
+			}
+		}
 	}
 
 	private void addRow(Sheet sheet, Object... values) {
@@ -504,10 +591,17 @@ public class SourceDataScan {
 		for (Object value : values) {
 			Cell cell = row.createCell(row.getPhysicalNumberOfCells());
 
-			if (value instanceof Integer || value instanceof Long || value instanceof Double)
-				cell.setCellValue(Double.parseDouble(value.toString()));
-			else
+			if (value instanceof Integer || value instanceof Long || value instanceof Double) {
+				Double numVal = Double.parseDouble(value.toString());
+				if (numVal.isNaN() || numVal.isInfinite()) {
+					cell.setCellValue("");
+				} else {
+					cell.setCellValue(numVal);
+				}
+			}
+			else {
 				cell.setCellValue(value.toString());
+			}
 
 		}
 	}
