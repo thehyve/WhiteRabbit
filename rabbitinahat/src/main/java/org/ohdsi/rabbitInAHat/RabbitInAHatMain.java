@@ -83,6 +83,8 @@ public class RabbitInAHatMain implements ResizeListener, ActionListener {
 	public final static String		ACTION_MARK_COMPLETED				= "Mark Highlighted As Complete";
 	public final static String		ACTION_UNMARK_COMPLETED				= "Mark Highlighted As Incomplete";
 	public final static String		ACTION_HELP							= "Open help Wiki";
+	public final static String		ACTION_SET_MAPPING_MODE             = "Mapping Mode";
+	public final static String		ACTION_SET_SOURCE_EXPLORATION_MODE  = "Source Explore Mode";
 
 	public final static String		WIKI_URL							= "http://www.ohdsi.org/web/wiki/doku.php?id=documentation:software:whiterabbit#rabbit-in-a-hat";
 	private final static FileFilter	FILE_FILTER_GZ						= new FileNameExtensionFilter("GZIP Files (*.gz)", "gz");
@@ -353,6 +355,13 @@ public class RabbitInAHatMain implements ResizeListener, ActionListener {
 		unmarkCompleted.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, menuShortcutMask));
 		arrowMenu.add(unmarkCompleted);
 
+		JMenu viewMenu = new JMenu("View");
+		menuBar.add(viewMenu);
+
+		addRadioMenuItems(viewMenu,
+				ACTION_SET_MAPPING_MODE,
+				ACTION_SET_SOURCE_EXPLORATION_MODE);
+
 		JMenu helpMenu = new JMenu("Help");
 		menuBar.add(helpMenu);
 		JMenuItem helpItem = new JMenuItem(ACTION_HELP);
@@ -360,6 +369,25 @@ public class RabbitInAHatMain implements ResizeListener, ActionListener {
 		helpMenu.add(helpItem);
 
 		return menuBar;
+	}
+
+	public void addMenuItem(JMenu menu, String action) {
+		JRadioButtonMenuItem mappingMode = new JRadioButtonMenuItem(action, true);
+		mappingMode.addActionListener(this);
+		menu.add(mappingMode);
+	}
+
+	public void addRadioMenuItems(JMenu menu, String... actions) {
+		ButtonGroup modeGroup = new ButtonGroup();
+		// Select the first
+		boolean isSelected = true;
+		for (String action : actions) {
+			JRadioButtonMenuItem menuItem = new JRadioButtonMenuItem(action, isSelected);
+			menuItem.addActionListener(this);
+			menu.add(menuItem);
+			modeGroup.add(menuItem);
+			if (isSelected) isSelected = false;
+		}
 	}
 
 	@Override
@@ -533,6 +561,12 @@ public class RabbitInAHatMain implements ResizeListener, ActionListener {
 				break;
 			case ACTION_UNMARK_COMPLETED:
 				doUnmarkCompleted();
+				break;
+			case ACTION_SET_MAPPING_MODE:
+				setMappingMode();
+				break;
+			case ACTION_SET_SOURCE_EXPLORATION_MODE:
+				setSourceExplorationMode();
 				break;
 			case ACTION_HELP:
 				doOpenWiki();
@@ -749,5 +783,13 @@ public class RabbitInAHatMain implements ResizeListener, ActionListener {
 	private void doUnmarkCompleted() {
 		this.tableMappingPanel.unmarkCompleted();
 		this.fieldMappingPanel.unmarkCompleted();
+	}
+
+	private void setMappingMode() {
+		tableMappingPanel.setShowTarget(true);
+	}
+
+	private void setSourceExplorationMode() {
+		tableMappingPanel.setShowTarget(false);
 	}
 }

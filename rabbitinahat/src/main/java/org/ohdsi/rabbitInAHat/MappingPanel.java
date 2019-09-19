@@ -83,6 +83,7 @@ public class MappingPanel extends JPanel implements MouseListener, MouseMotionLi
 	private boolean					minimized					= false;
 	private MappingPanel			slaveMappingPanel;
 	private boolean					showOnlyConnectedItems		= false;
+	private boolean					showTarget					= true;
 
 	private int						shortcutMask				= Toolkit.getDefaultToolkit().getMenuShortcutKeyMask();
 
@@ -155,6 +156,11 @@ public class MappingPanel extends JPanel implements MouseListener, MouseMotionLi
 		renderModel();
 	}
 
+	public void setShowTarget(boolean showTarget) {
+		this.showTarget = showTarget;
+		this.renderModel();
+	}
+
 	private void renderModel() {
 		sourceComponents.clear();
 		cdmComponents.clear();
@@ -167,16 +173,18 @@ public class MappingPanel extends JPanel implements MouseListener, MouseMotionLi
 					sourceComponents.add(new LabeledRectangle(0, 400, ITEM_WIDTH, ITEM_HEIGHT, item, new Color(255, 128, 0)));
 			}
 		for (MappableItem item : mapping.getTargetItems())
-			if (!showOnlyConnectedItems || isConnected(item)) {
+			if (showTarget && !showOnlyConnectedItems || isConnected(item)) {
 				if (item.isStem())
 					cdmComponents.add(new LabeledRectangle(0, 400, ITEM_WIDTH, ITEM_HEIGHT, item, new Color(160, 0, 160)));
 				else
 					cdmComponents.add(new LabeledRectangle(0, 400, ITEM_WIDTH, ITEM_HEIGHT, item, new Color(128, 128, 255)));
 			}
 		for (ItemToItemMap map : mapping.getSourceToTargetMaps()) {
-			Arrow component = new Arrow(getComponentWithItem(map.getSourceItem(), sourceComponents), getComponentWithItem(map.getTargetItem(), cdmComponents),
-					map);
-			arrows.add(component);
+			if (showTarget) {
+				Arrow component = new Arrow(getComponentWithItem(map.getSourceItem(), sourceComponents), getComponentWithItem(map.getTargetItem(), cdmComponents),
+						map);
+				arrows.add(component);
+			}
 		}
 		layoutItems();
 		repaint();
@@ -308,7 +316,9 @@ public class MappingPanel extends JPanel implements MouseListener, MouseMotionLi
 
 		g2d.setColor(Color.BLACK);
 		addLabel(g2d, this.getSourceDbName(), sourceX + ITEM_WIDTH / 2, HEADER_TOP_MARGIN + HEADER_HEIGHT / 2);
-		addLabel(g2d, this.getTargetDbName(), cdmX + ITEM_WIDTH / 2, HEADER_TOP_MARGIN + HEADER_HEIGHT / 2);
+		if (this.showTarget) {
+			addLabel(g2d, this.getTargetDbName(), cdmX + ITEM_WIDTH / 2, HEADER_TOP_MARGIN + HEADER_HEIGHT / 2);
+		}
 
 		if (showingArrowStarts && dragRectangle == null) {
 			for (LabeledRectangle item : getVisibleSourceComponents())
@@ -734,9 +744,8 @@ public class MappingPanel extends JPanel implements MouseListener, MouseMotionLi
 				repaint();
 
 				// WIP
-				// TODO: This now shows a (random) target table. Allow to enter field view with only source or only target table.
+				// TODO: This now shows (random) target table fields.
 				// TODO: make display of fields independent of (zoom)Arrow.
-				// TODO: hide target CDM table ('source exploration mode')
 				if (event.getClickCount() == 2) {
 					if (slaveMappingPanel != null) {
 						slaveMappingPanel.setMapping(
@@ -745,12 +754,13 @@ public class MappingPanel extends JPanel implements MouseListener, MouseMotionLi
 										(Table) components.get(0).getItem()
 								)
 						);
+
+						// Dummy arrow, something needed
 						zoomArrow = new Arrow(
 								component,
 								components.get(0)
 						);
 
-						System.out.println("Clicked twice! Setting slaveMappingPanel");
 						new AnimateThread(true).start();
 
 						slaveMappingPanel.filterComponents("", false);
