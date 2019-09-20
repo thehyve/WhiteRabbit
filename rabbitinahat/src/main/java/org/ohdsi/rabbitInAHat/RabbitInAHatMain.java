@@ -55,7 +55,7 @@ import org.ohdsi.rabbitInAHat.dataModel.Table;
 /**
  * This is the main class for the RabbitInAHat application
  */
-public class RabbitInAHatMain implements ResizeListener, ActionListener {
+public class RabbitInAHatMain implements ResizeListener {
 
 	public final static String		ACTION_SAVE							= "Save";
 	public final static String		ACTION_SAVE_AS						= "Save As";
@@ -220,94 +220,136 @@ public class RabbitInAHatMain implements ResizeListener, ActionListener {
 
 	private JMenuBar createMenuBar() {
 		JMenuBar menuBar = new JMenuBar();
-
 		JMenu fileMenu = new JMenu("File");
+		int menuShortcutMask = Toolkit.getDefaultToolkit().getMenuShortcutKeyMask();
+
 		menuBar.add(fileMenu);
-		addMenuItem(fileMenu, ACTION_OPEN_SCAN_REPORT);
-		addMenuItem(fileMenu, ACTION_OPEN_ETL_SPECS, KeyEvent.VK_O);
-		addMenuItem(fileMenu, ACTION_SAVE, KeyEvent.VK_S);
-		addMenuItem(fileMenu, ACTION_SAVE_AS);
+
+		JMenuItem openScanReportItem = new JMenuItem(ACTION_OPEN_SCAN_REPORT);
+		openScanReportItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_W, menuShortcutMask));
+		fileMenu.add(openScanReportItem).addActionListener(evt -> this.doOpenScanReport());;
+
+		JMenuItem openItem = new JMenuItem(ACTION_OPEN_ETL_SPECS);
+		openItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, menuShortcutMask));
+		fileMenu.add(openItem).addActionListener(evt -> this.doOpenSpecs());
+
+		JMenuItem saveItem = new JMenuItem(ACTION_SAVE);
+		saveItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, menuShortcutMask));
+		fileMenu.add(saveItem).addActionListener(evt -> this.doSave());
+
+		JMenuItem saveAsItem = new JMenuItem(ACTION_SAVE_AS);
+		fileMenu.add(saveAsItem).addActionListener(evt -> this.doSaveAs());
 
 		JMenu generateEtlDocumentMenu = new JMenu("Generate ETL document");
 		fileMenu.add(generateEtlDocumentMenu);
-		addMenuItem(generateEtlDocumentMenu, ACTION_GENERATE_ETL_WORD_DOCUMENT);
-		addMenuItem(generateEtlDocumentMenu, ACTION_GENERATE_ETL_HTML_DOCUMENT);
-		addMenuItem(generateEtlDocumentMenu, ACTION_GENERATE_ETL_MD_DOCUMENT);
+		JMenuItem generateWordDocItem = new JMenuItem(ACTION_GENERATE_ETL_WORD_DOCUMENT);
+		generateEtlDocumentMenu.add(generateWordDocItem).addActionListener(evt -> this.doGenerateEtlWordDoc());
 
-		addMenuItem(fileMenu, ACTION_GENERATE_TEST_FRAMEWORK);
-		addMenuItem(fileMenu, ACTION_GENERATE_SQL);
+		JMenuItem generateHtmlDocItem = new JMenuItem(ACTION_GENERATE_ETL_HTML_DOCUMENT);
+		generateEtlDocumentMenu.add(generateHtmlDocItem).addActionListener(evt -> this.doGenerateEtlHtmlDoc());
+
+		JMenuItem generateMdDocItem = new JMenuItem(ACTION_GENERATE_ETL_MD_DOCUMENT);
+		generateEtlDocumentMenu.add(generateMdDocItem).addActionListener(evt -> this.doGenerateEtlMdDoc());
+
+		JMenuItem generateTestFrameworkItem = new JMenuItem(ACTION_GENERATE_TEST_FRAMEWORK);
+		fileMenu.add(generateTestFrameworkItem).addActionListener(evt -> this.doGenerateTestFramework());
+
+		JMenuItem generateSql = new JMenuItem(ACTION_GENERATE_SQL);
+		fileMenu.add(generateSql).addActionListener(evt -> this.doGenerateSql());
 
 		JMenu editMenu = new JMenu("Edit");
 		menuBar.add(editMenu);
-		addMenuItem(editMenu, ACTION_DISCARD_COUNTS);
-		addMenuItem(editMenu, ACTION_FILTER, KeyEvent.VK_F);
-		addMenuItem(editMenu, ACTION_ADD_STEM_TABLE);
 
-		JMenu setTargetMenu = new JMenu("Set Target Database");
-		editMenu.add(setTargetMenu);
-		addRadioMenuItems(
-				setTargetMenu,
-				ACTION_SET_TARGET_V60,
-				ACTION_SET_TARGET_V4,
-				ACTION_SET_TARGET_V5,
-				ACTION_SET_TARGET_V501,
-				ACTION_SET_TARGET_V510,
-				ACTION_SET_TARGET_V520,
-				ACTION_SET_TARGET_V530,
-				ACTION_SET_TARGET_V531,
-				ACTION_SET_TARGET_CUSTOM
-		);
+		JMenuItem discardCounts = new JMenuItem(ACTION_DISCARD_COUNTS);
+		editMenu.add(discardCounts).addActionListener(evt -> this.doDiscardCounts());
+
+		JMenuItem filter = new JMenuItem(ACTION_FILTER);
+		filter.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F, menuShortcutMask));
+		editMenu.add(filter).addActionListener(evt -> this.doOpenFilterDialog());
+
+		JMenuItem addStemTable = new JMenuItem(ACTION_ADD_STEM_TABLE);
+		editMenu.add(addStemTable).addActionListener(evt -> this.doAddStemTable());
 
 		JMenuItem removeStemTable = new JMenuItem(ACTION_REMOVE_STEM_TABLE);
-		removeStemTable.addActionListener(this);
-		editMenu.add(removeStemTable);
+		editMenu.add(removeStemTable).addActionListener(evt -> this.doRemoveStemTable());
+
+		JMenu targetMenu = new JMenu("Set Target Database");
+		editMenu.add(targetMenu);
+		ButtonGroup targetGroup = new ButtonGroup();
+
+		JRadioButtonMenuItem targetCDMV4 = new JRadioButtonMenuItem(ACTION_SET_TARGET_V4);
+		targetGroup.add(targetCDMV4);
+		targetMenu.add(targetCDMV4).addActionListener(evt -> this.doSetTargetCDM(CDMVersion.CDMV4));
+
+		JRadioButtonMenuItem targetCDMV5 = new JRadioButtonMenuItem(ACTION_SET_TARGET_V5);
+		targetGroup.add(targetCDMV5);
+		targetMenu.add(targetCDMV5).addActionListener(evt -> this.doSetTargetCDM(CDMVersion.CDMV5));
+
+		JRadioButtonMenuItem targetCDMV501 = new JRadioButtonMenuItem(ACTION_SET_TARGET_V501);
+		targetGroup.add(targetCDMV501);
+		targetMenu.add(targetCDMV501).addActionListener(evt -> this.doSetTargetCDM(CDMVersion.CDMV501));
+
+		JRadioButtonMenuItem targetCDMV510 = new JRadioButtonMenuItem(ACTION_SET_TARGET_V510);
+		targetGroup.add(targetCDMV510);
+		targetMenu.add(targetCDMV510).addActionListener(evt -> this.doSetTargetCDM(CDMVersion.CDMV510));
+
+		JRadioButtonMenuItem targetCDMV520 = new JRadioButtonMenuItem(ACTION_SET_TARGET_V520);
+		targetGroup.add(targetCDMV520);
+		targetMenu.add(targetCDMV520).addActionListener(evt -> this.doSetTargetCDM(CDMVersion.CDMV520));
+
+		JRadioButtonMenuItem targetCDMV530 = new JRadioButtonMenuItem(ACTION_SET_TARGET_V530);
+		targetGroup.add(targetCDMV530);
+		targetMenu.add(targetCDMV530).addActionListener(evt -> this.doSetTargetCDM(CDMVersion.CDMV530));
+
+		JRadioButtonMenuItem targetCDMV531 = new JRadioButtonMenuItem(ACTION_SET_TARGET_V531);
+		targetGroup.add(targetCDMV531);
+		targetMenu.add(targetCDMV531).addActionListener(evt -> this.doSetTargetCDM(CDMVersion.CDMV531));
+
+		JRadioButtonMenuItem targetCDMV60 = new JRadioButtonMenuItem(ACTION_SET_TARGET_V60, true);
+		targetGroup.add(targetCDMV60);
+		targetMenu.add(targetCDMV60).addActionListener(evt -> this.doSetTargetCDM(CDMVersion.CDMV60));
+
+		JRadioButtonMenuItem targetCustom = new JRadioButtonMenuItem(ACTION_SET_TARGET_CUSTOM);
+		targetGroup.add(targetCustom);
+		targetMenu.add(targetCustom).addActionListener(evt -> this.doSetTargetCustom(chooseOpenPath(FILE_FILTER_CSV)));
 
 		JMenu arrowMenu = new JMenu("Arrows");
 		menuBar.add(arrowMenu);
-		addMenuItem(arrowMenu, ACTION_MAKE_MAPPING, KeyEvent.VK_M);
-		addMenuItem(arrowMenu, ACTION_REMOVE_MAPPING, KeyEvent.VK_R);
-		addMenuItem(arrowMenu, ACTION_MARK_COMPLETED, KeyEvent.VK_D);
-		addMenuItem(arrowMenu, ACTION_UNMARK_COMPLETED, KeyEvent.VK_I);
+
+		JMenuItem makeMappings = new JMenuItem(ACTION_MAKE_MAPPING);
+		makeMappings.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_M, menuShortcutMask));
+		arrowMenu.add(makeMappings).addActionListener(evt -> this.doMakeMappings());
+
+		JMenuItem removeMappings = new JMenuItem(ACTION_REMOVE_MAPPING);
+		removeMappings.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, menuShortcutMask));
+		arrowMenu.add(removeMappings).addActionListener(evt -> this.doRemoveMappings());
+
+		JMenuItem markCompleted = new JMenuItem(ACTION_MARK_COMPLETED);
+		markCompleted.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D, menuShortcutMask));
+		arrowMenu.add(markCompleted).addActionListener(evt -> this.doMarkCompleted());
+
+		JMenuItem unmarkCompleted = new JMenuItem(ACTION_UNMARK_COMPLETED);
+		unmarkCompleted.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, menuShortcutMask));
+		arrowMenu.add(unmarkCompleted).addActionListener(evt -> this.doUnmarkCompleted());
 
 		JMenu viewMenu = new JMenu("View");
 		menuBar.add(viewMenu);
-		addRadioMenuItems(
-				viewMenu,
-				ACTION_SET_MAPPING_MODE,
-				ACTION_SET_SOURCE_EXPLORATION_MODE
-		);
+		ButtonGroup viewGroup = new ButtonGroup();
+
+		JRadioButtonMenuItem explorationMode = new JRadioButtonMenuItem(ACTION_SET_SOURCE_EXPLORATION_MODE);
+		viewGroup.add(explorationMode);
+		viewMenu.add(explorationMode).addActionListener(evt -> this.setSourceExplorationMode());
+
+		JRadioButtonMenuItem mappingMode = new JRadioButtonMenuItem(ACTION_SET_MAPPING_MODE, true);
+		viewGroup.add(mappingMode);
+		viewMenu.add(mappingMode).addActionListener(evt -> this.setMappingMode());
 
 		JMenu helpMenu = new JMenu("Help");
 		menuBar.add(helpMenu);
-		addMenuItem(helpMenu, ACTION_HELP);
+		JMenuItem helpItem = new JMenuItem(ACTION_HELP);
+		helpMenu.add(helpItem).addActionListener(evt -> this.doOpenWiki());
 
 		return menuBar;
-	}
-
-	public void addMenuItem(JMenu menu, String action) {
-		addMenuItem(menu, action, null);
-	}
-
-	public void addMenuItem(JMenu menu, String action, Integer keyEvent) {
-		JMenuItem menuItem = new JMenuItem(action);
-		menuItem.addActionListener(this);
-		if (keyEvent != null) {
-			menuItem.setAccelerator(KeyStroke.getKeyStroke(keyEvent, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
-		}
-		menu.add(menuItem);
-	}
-
-	public void addRadioMenuItems(JMenu menu, String... actions) {
-		ButtonGroup modeGroup = new ButtonGroup();
-		// The first is the default
-		boolean isFirstAction = true;
-		for (String action : actions) {
-			JRadioButtonMenuItem menuItem = new JRadioButtonMenuItem(action, isFirstAction);
-			menuItem.addActionListener(this);
-			menu.add(menuItem);
-			modeGroup.add(menuItem);
-			isFirstAction = false;
-		}
 	}
 
 	@Override
@@ -404,124 +446,36 @@ public class RabbitInAHatMain implements ResizeListener, ActionListener {
 		return choosePath(true, true, new FileNameExtensionFilter("Directories","."));
 	}
 
-	@Override
-	public void actionPerformed(ActionEvent event) {
-		switch (event.getActionCommand()) {
-			case ACTION_SAVE:
-				String filename = ObjectExchange.etl.getFilename();
-				doSave((filename == null || !filename.toLowerCase().endsWith(".json.gz")) ? chooseSavePath(FILE_FILTER_GZ) : filename);
-				break;
-			case ACTION_SAVE_AS:
-				doSave(chooseSavePath(FILE_FILTER_GZ, FILE_FILTER_JSON));
-				break;
-			case ACTION_OPEN_ETL_SPECS:
-				doOpenSpecs(chooseOpenPath(FILE_FILTER_GZ, FILE_FILTER_JSON));
-				break;
-			case ACTION_OPEN_SCAN_REPORT:
-				doOpenScanReport(chooseOpenPath(FILE_FILTER_XLSX));
-				break;
-			case ACTION_GENERATE_ETL_WORD_DOCUMENT:
-				doGenerateEtlWordDoc(chooseSavePath(FILE_FILTER_DOCX));
-				break;
-			case ACTION_GENERATE_ETL_HTML_DOCUMENT:
-				doGenerateEtlHtmlDoc(chooseSavePath(FILE_FILTER_HTML));
-				break;
-			case ACTION_GENERATE_ETL_MD_DOCUMENT:
-				doGenerateEtlMdDoc(chooseSavePath(FILE_FILTER_MD));
-				break;
-			case ACTION_GENERATE_TEST_FRAMEWORK:
-				doGenerateTestFramework(chooseSavePath(FILE_FILTER_R));
-			case ACTION_GENERATE_SQL:
-				doGenerateSql(chooseSaveDirectory());
-				break;
-			case ACTION_DISCARD_COUNTS:
-				doDiscardCounts();
-				break;
-			case ACTION_FILTER:
-				doOpenFilterDialog();
-				break;
-			case ACTION_MAKE_MAPPING:
-				doMakeMappings();
-				break;
-			case ACTION_REMOVE_MAPPING:
-				doRemoveMappings();
-				break;
-			case ACTION_SET_TARGET_V4:
-				doSetTargetCDM(CDMVersion.CDMV4);
-				break;
-			case ACTION_SET_TARGET_V5:
-				doSetTargetCDM(CDMVersion.CDMV5);
-				break;
-			case ACTION_SET_TARGET_V501:
-				doSetTargetCDM(CDMVersion.CDMV501);
-				break;
-			case ACTION_SET_TARGET_V510:
-				doSetTargetCDM(CDMVersion.CDMV510);
-				break;
-			case ACTION_SET_TARGET_V520:
-				doSetTargetCDM(CDMVersion.CDMV520);
-				break;
-			case ACTION_SET_TARGET_V530:
-				doSetTargetCDM(CDMVersion.CDMV530);
-				break;
-			case ACTION_SET_TARGET_V531:
-				doSetTargetCDM(CDMVersion.CDMV531);
-				break;
-			case ACTION_SET_TARGET_V60:
-				doSetTargetCDM(CDMVersion.CDMV60);
-				break;
-			case ACTION_SET_TARGET_CUSTOM:
-				doSetTargetCustom(chooseOpenPath(FILE_FILTER_CSV));
-				break;
-			case ACTION_ADD_STEM_TABLE:
-				doAddStemTable();
-				break;
-			case ACTION_REMOVE_STEM_TABLE:
-				doRemoveStemTable();
-				break;
-			case ACTION_MARK_COMPLETED:
-				doMarkCompleted();
-				break;
-			case ACTION_UNMARK_COMPLETED:
-				doUnmarkCompleted();
-				break;
-			case ACTION_SET_MAPPING_MODE:
-				setMappingMode();
-				break;
-			case ACTION_SET_SOURCE_EXPLORATION_MODE:
-				setSourceExplorationMode();
-				break;
-			case ACTION_HELP:
-				doOpenWiki();
-				break;
+	private void doAddStemTable() {
+		if (ObjectExchange.etl.hasStemTable()) {
+			return;
 		}
+
+		StemTableFactory.addStemTable(ObjectExchange.etl);
+		tableMappingPanel.setMapping(ObjectExchange.etl.getTableToTableMapping());
 	}
 
-	private void doAddStemTable() {
+	//	FYI: To decrease nesting, you could invert the condition and return.
+	private void doRemoveStemTable() {
 		if (!ObjectExchange.etl.hasStemTable()) {
-			StemTableFactory.addStemTable(ObjectExchange.etl);
+			return;
+		}
+
+		String[] ObjButtons = {"Yes","No"};
+		int PromptResult = JOptionPane.showOptionDialog(
+				null,"Any mappings to/from the stem table will be lost. Are you sure?",
+				"Rabbit In A Hat", JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE,
+				null, ObjButtons, ObjButtons[1]
+		);
+
+		if (PromptResult==JOptionPane.YES_OPTION) {
+			StemTableFactory.removeStemTable(ObjectExchange.etl);
 			tableMappingPanel.setMapping(ObjectExchange.etl.getTableToTableMapping());
 		}
 	}
 
-	private void doRemoveStemTable() {
-		if (ObjectExchange.etl.hasStemTable()) {
-			String[] ObjButtons = {"Yes","No"};
-			int PromptResult = JOptionPane.showOptionDialog(
-					null,
-					"Any mappings to/from the stem table will be lost. Are you sure?",
-					"Rabbit In A Hat",JOptionPane.DEFAULT_OPTION,JOptionPane.WARNING_MESSAGE,
-					null,ObjButtons,ObjButtons[1]
-			);
-
-			if (PromptResult==JOptionPane.YES_OPTION) {
-				StemTableFactory.removeStemTable(ObjectExchange.etl);
-				tableMappingPanel.setMapping(ObjectExchange.etl.getTableToTableMapping());
-			}
-		}
-	}
-
-	private void doGenerateTestFramework(String filename) {
+	private void doGenerateTestFramework() {
+		String filename = chooseSavePath(FILE_FILTER_R);
 		if (filename != null) {
 			frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 			ETLTestFrameWorkGenerator etlTestFrameWorkGenerator = new ETLTestFrameWorkGenerator();
@@ -598,6 +552,16 @@ public class RabbitInAHatMain implements ResizeListener, ActionListener {
 		detailsPanel.refresh();
 	}
 
+	private void doSave() {
+		String filename = ObjectExchange.etl.getFilename();
+		doSave((filename == null || !filename.toLowerCase().endsWith(".json.gz")) ? chooseSavePath(FILE_FILTER_GZ) : filename);
+	}
+
+	private void doSaveAs() {
+		String filename = chooseSavePath(FILE_FILTER_GZ, FILE_FILTER_JSON);
+		doSave(filename);
+	}
+
 	private void doSave(String filename) {
 		if (filename != null) {
 			frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
@@ -606,6 +570,11 @@ public class RabbitInAHatMain implements ResizeListener, ActionListener {
 			ObjectExchange.etl.save(filename, fileFormat);
 			frame.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 		}
+	}
+
+	private void doOpenSpecs() {
+		String filename = chooseOpenPath(FILE_FILTER_GZ, FILE_FILTER_JSON);
+		doOpenSpecs(filename);
 	}
 
 	private void doOpenSpecs(String filename) {
@@ -624,7 +593,8 @@ public class RabbitInAHatMain implements ResizeListener, ActionListener {
 		}
 	}
 
-	private void doOpenScanReport(String filename) {
+	private void doOpenScanReport() {
+		String filename = chooseOpenPath(FILE_FILTER_XLSX);
 		if (filename != null) {
 			boolean replace = true;
 			if (ObjectExchange.etl.getSourceDatabase().getTables().size() != 0) {
@@ -681,7 +651,8 @@ public class RabbitInAHatMain implements ResizeListener, ActionListener {
 		return null;
 	}
 
-	private void doGenerateEtlWordDoc(String filename) {
+	private void doGenerateEtlWordDoc() {
+		String filename = chooseSavePath(FILE_FILTER_DOCX);
 		if (filename != null) {
 			frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 			ETLWordDocumentGenerator.generate(ObjectExchange.etl, filename);
@@ -689,7 +660,8 @@ public class RabbitInAHatMain implements ResizeListener, ActionListener {
 		}
 	}
 
-	private void doGenerateEtlHtmlDoc(String filename) {
+	private void doGenerateEtlHtmlDoc() {
+		String filename = chooseSavePath(FILE_FILTER_HTML);
 		if (filename != null) {
 			frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 			ETLMarkupDocumentGenerator generator = new ETLMarkupDocumentGenerator(ObjectExchange.etl);
@@ -698,7 +670,8 @@ public class RabbitInAHatMain implements ResizeListener, ActionListener {
 		}
 	}
 
-	private void doGenerateEtlMdDoc(String filename) {
+	private void doGenerateEtlMdDoc() {
+		String filename = chooseSavePath(FILE_FILTER_MD);
 		if (filename != null) {
 			frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 			ETLMarkupDocumentGenerator generator = new ETLMarkupDocumentGenerator(ObjectExchange.etl);
@@ -707,7 +680,8 @@ public class RabbitInAHatMain implements ResizeListener, ActionListener {
 		}
 	}
 
-	private void doGenerateSql(String directoryName) {
+	private void doGenerateSql() {
+		String directoryName = chooseSaveDirectory();
 		if (directoryName != null) {
 			frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 			SQLGenerator sqlGenerator = new SQLGenerator(ObjectExchange.etl, directoryName);
