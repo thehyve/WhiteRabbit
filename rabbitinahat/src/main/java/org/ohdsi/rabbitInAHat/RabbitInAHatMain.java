@@ -244,7 +244,8 @@ public class RabbitInAHatMain implements ResizeListener, ActionListener {
 
 		JMenu setTargetMenu = new JMenu("Set Target Database");
 		editMenu.add(setTargetMenu);
-		addRadioMenuItems(setTargetMenu,
+		addRadioMenuItems(
+				setTargetMenu,
 				ACTION_SET_TARGET_V60,
 				ACTION_SET_TARGET_V4,
 				ACTION_SET_TARGET_V5,
@@ -265,7 +266,8 @@ public class RabbitInAHatMain implements ResizeListener, ActionListener {
 
 		JMenu viewMenu = new JMenu("View");
 		menuBar.add(viewMenu);
-		addRadioMenuItems(viewMenu,
+		addRadioMenuItems(
+				viewMenu,
 				ACTION_SET_MAPPING_MODE,
 				ACTION_SET_SOURCE_EXPLORATION_MODE
 		);

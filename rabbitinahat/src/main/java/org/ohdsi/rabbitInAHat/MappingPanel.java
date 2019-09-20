@@ -158,6 +158,9 @@ public class MappingPanel extends JPanel implements MouseListener, MouseMotionLi
 
 	public void setShowTarget(boolean showTarget) {
 		this.showTarget = showTarget;
+		if (this.slaveMappingPanel != null) {
+			this.slaveMappingPanel.setShowTarget(showTarget);
+		}
 		this.renderModel();
 	}
 
@@ -173,18 +176,19 @@ public class MappingPanel extends JPanel implements MouseListener, MouseMotionLi
 					sourceComponents.add(new LabeledRectangle(0, 400, ITEM_WIDTH, ITEM_HEIGHT, item, new Color(255, 128, 0)));
 			}
 		for (MappableItem item : mapping.getTargetItems())
-			if (showTarget && !showOnlyConnectedItems || isConnected(item)) {
+			if (!showOnlyConnectedItems || isConnected(item)) {
 				if (item.isStem())
 					cdmComponents.add(new LabeledRectangle(0, 400, ITEM_WIDTH, ITEM_HEIGHT, item, new Color(160, 0, 160)));
 				else
 					cdmComponents.add(new LabeledRectangle(0, 400, ITEM_WIDTH, ITEM_HEIGHT, item, new Color(128, 128, 255)));
 			}
 		for (ItemToItemMap map : mapping.getSourceToTargetMaps()) {
-			if (showTarget) {
-				Arrow component = new Arrow(getComponentWithItem(map.getSourceItem(), sourceComponents), getComponentWithItem(map.getTargetItem(), cdmComponents),
-						map);
-				arrows.add(component);
-			}
+			Arrow component = new Arrow(
+					getComponentWithItem(map.getSourceItem(), sourceComponents),
+					getComponentWithItem(map.getTargetItem(), cdmComponents),
+					map
+			);
+			arrows.add(component);
 		}
 		layoutItems();
 		repaint();
@@ -316,28 +320,34 @@ public class MappingPanel extends JPanel implements MouseListener, MouseMotionLi
 
 		g2d.setColor(Color.BLACK);
 		addLabel(g2d, this.getSourceDbName(), sourceX + ITEM_WIDTH / 2, HEADER_TOP_MARGIN + HEADER_HEIGHT / 2);
-		if (this.showTarget) {
+		if (showTarget) {
 			addLabel(g2d, this.getTargetDbName(), cdmX + ITEM_WIDTH / 2, HEADER_TOP_MARGIN + HEADER_HEIGHT / 2);
 		}
 
-		if (showingArrowStarts && dragRectangle == null) {
+		if (showTarget && showingArrowStarts && dragRectangle == null) {
 			for (LabeledRectangle item : getVisibleSourceComponents())
 				Arrow.drawArrowHead(g2d, Math.round(item.getX() + item.getWidth() + Arrow.headThickness), item.getY() + item.getHeight() / 2);
 		}
 
-		for (LabeledRectangle component : getVisibleSourceComponents())
-			if (component != dragRectangle)
+		for (LabeledRectangle component : getVisibleSourceComponents()) {
+			if (component != dragRectangle) {
 				component.paint(g2d);
+			}
+		}
 
-		for (LabeledRectangle component : getVisibleTargetComponents())
-			if (component != dragRectangle)
-				component.paint(g2d);
+		if (showTarget) {
+			for (LabeledRectangle component : getVisibleTargetComponents()) {
+				if (component != dragRectangle) {
+					component.paint(g2d);
+				}
+			}
 
-		for (int i = HighlightStatus.values().length - 1; i >= 0; i--) {
-			HighlightStatus status = HighlightStatus.values()[i];
-			for (Arrow arrow : arrowsByStatus(status)) {
-				if (arrow != dragArrow) {
-					arrow.paint(g2d);
+			for (int i = HighlightStatus.values().length - 1; i >= 0; i--) {
+				HighlightStatus status = HighlightStatus.values()[i];
+				for (Arrow arrow : arrowsByStatus(status)) {
+					if (arrow != dragArrow) {
+						arrow.paint(g2d);
+					}
 				}
 			}
 		}
