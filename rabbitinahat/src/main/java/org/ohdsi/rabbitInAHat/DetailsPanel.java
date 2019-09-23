@@ -284,7 +284,7 @@ public class DetailsPanel extends JPanel implements DetailsListener {
 			if (table.getRowCount() > 0) {
 				rowCountLabel.setText(numberFormat.format(table.getRowCount()));
 			} else {
-				rowCountLabel.setText(">= " + numberFormat.format(table.getRowsCheckedCount()));
+				rowCountLabel.setText(">= " + numberFormat.format(table.getRowCheckedCount()));
 			}
 
 			fieldTable.clear();
