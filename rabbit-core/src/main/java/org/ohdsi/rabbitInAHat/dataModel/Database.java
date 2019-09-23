@@ -153,10 +153,11 @@ public class Database implements Serializable {
 				String fieldName = row.getStringByHeaderName(ScanFieldName.FIELD);
 				Field field = new Field(fieldName.toLowerCase(), table);
 
-				String fractionEmpty = row.getByHeaderName(ScanFieldName.FRACTION_EMPTY);
-				field.setNullable(fractionEmpty == null || !fractionEmpty.equals("0"));
 				field.setType(row.getByHeaderName(ScanFieldName.TYPE));
 				field.setMaxLength(row.getIntByHeaderName(ScanFieldName.MAX_LENGTH));
+				field.setFractionEmpty(row.getDoubleByHeaderName(ScanFieldName.FRACTION_EMPTY));
+				field.setUniqueCount(row.getIntByHeaderName(ScanFieldName.UNIQUE_COUNT));
+				field.setFractionUnique(row.getDoubleByHeaderName(ScanFieldName.FRACTION_UNIQUE));
 
 				field.setValueCounts(getValueCounts(workbook, tableName, fieldName));
 				table.getFields().add(field);

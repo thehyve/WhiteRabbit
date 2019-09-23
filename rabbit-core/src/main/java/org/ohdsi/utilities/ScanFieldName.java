@@ -10,13 +10,13 @@ public interface ScanFieldName {
     String FRACTION_EMPTY = "Fraction empty";
     String UNIQUE_COUNT = "N unique values";
     String FRACTION_UNIQUE = "Fraction unique";
-    String AVERAGE = "Average";
-    String STDEV = "Standard Deviation";
-    String MIN = "Min";
-    String Q1 = "25%";
-    String Q2 = "Median";
-    String Q3 = "75%";
-    String MAX = "Max%";
+//    String AVERAGE = "Average";
+//    String STDEV = "Standard Deviation";
+//    String MIN = "Min";
+//    String Q1 = "25%";
+//    String Q2 = "Median";
+//    String Q3 = "75%";
+//    String MAX = "Max%";
 }
 
 
