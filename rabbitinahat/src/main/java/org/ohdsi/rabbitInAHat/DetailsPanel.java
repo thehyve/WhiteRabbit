@@ -317,8 +317,7 @@ public class DetailsPanel extends JPanel implements DetailsListener {
 		private static final long	serialVersionUID	= -4393026616049677944L;
 		private JLabel				nameLabel			= new JLabel("");
 		private JLabel 				typeLabel 			= new JLabel("");
-		private JLabel				emptyFractionLabel	= new JLabel("");
-		private JLabel				uniqueCountLabel	= new JLabel("");
+		private JLabel				valueDetailLabel	= new JLabel("");
 		private DescriptionTextArea description			= new DescriptionTextArea ("");
 		private SimpleTableModel	valueTable			= new SimpleTableModel("Value", "Frequency", "Fraction");
 		private JTextArea			commentsArea		= new JTextArea();
@@ -340,17 +339,15 @@ public class DetailsPanel extends JPanel implements DetailsListener {
 			fieldInfo.add(new JLabel("Field type: "));
 			fieldInfo.add(typeLabel);
 
+			generalInfoPanel.add(fieldInfo, BorderLayout.NORTH);
+
 			JPanel sourceDetailsPanel = new JPanel();
 			sourceDetailsPanel.setLayout(new GridLayout(0,2));
 
-			sourceDetailsPanel.add(new JLabel("Percentage Empty: "));
-			sourceDetailsPanel.add(emptyFractionLabel);
-
 			sourceDetailsPanel.add(new JLabel("Unique values: "));
-			sourceDetailsPanel.add(uniqueCountLabel);
+			sourceDetailsPanel.add(valueDetailLabel);
 
-			fieldInfo.add(sourceDetailsPanel, BorderLayout.SOUTH);
-			generalInfoPanel.add(fieldInfo, BorderLayout.NORTH);
+			generalInfoPanel.add(sourceDetailsPanel);
 
 			JPanel descriptionInfo = new JPanel();
 			descriptionInfo.setLayout(new GridLayout(0,2));
@@ -393,23 +390,20 @@ public class DetailsPanel extends JPanel implements DetailsListener {
 			
 			nameLabel.setText(field.getName());
 			typeLabel.setText(field.getType());
-			if (field.getFractionEmpty() != null) {
-				emptyFractionLabel.setText(percentageFormat.format(field.getFractionEmpty()));
-				emptyFractionLabel.getParent().setVisible(true);
-			} else {
-				emptyFractionLabel.getParent().setVisible(false);
-			}
 
+			// Additional unique count and percentage empty
+			StringBuilder valueDetailText = new StringBuilder();
 			if (field.getUniqueCount() != null) {
-				uniqueCountLabel.setText(numberFormat.format(field.getUniqueCount()));
-				uniqueCountLabel.getParent().setVisible(true);
-			} else {
-				uniqueCountLabel.getParent().setVisible(false);
+				valueDetailText.append(numberFormat.format(field.getUniqueCount()));
 			}
+			if (field.getFractionEmpty() != null) {
+				valueDetailText.append(String.format(" (%s empty)", percentageFormat.format(field.getFractionEmpty())));
+			}
+			valueDetailLabel.setText(valueDetailText.toString());
+			valueDetailLabel.getParent().setVisible(!valueDetailLabel.getText().isEmpty());
 
+			// Description. Hide when empty
 			description.setText(field.getDescription());
-			
-			// Hide description if it's empty
 			description.getParent().setVisible(!description.getText().isEmpty());
 
 			valueTable.clear();
