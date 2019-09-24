@@ -589,20 +589,18 @@ public class QuickAndDirtyXlsxReader extends ArrayList<Sheet> {
 
 		public Double getDoubleByHeaderName(String fieldName) {
 			String value = getStringByHeaderName(fieldName);
-			if (value != null) {
-				return Double.parseDouble(value);
-			} else {
+			if (value == null || value.isEmpty()) {
 				return null;
 			}
+			return Double.parseDouble(value);
 		}
 
 		public Integer getIntByHeaderName(String fieldName) {
 			Double value = getDoubleByHeaderName(fieldName);
 			if (value == null) {
 				return null;
-			} else {
-				return value.intValue();
 			}
+			return value.intValue();
 		}
 	}
 }

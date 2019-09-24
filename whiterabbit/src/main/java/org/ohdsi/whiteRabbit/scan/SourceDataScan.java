@@ -132,9 +132,7 @@ public class SourceDataScan {
 			addRow(overviewSheet,
 					ScanFieldName.TABLE, ScanFieldName.FIELD, ScanFieldName.TYPE, ScanFieldName.MAX_LENGTH,
 					ScanFieldName.N_ROWS, ScanFieldName.N_ROWS_CHECKED, ScanFieldName.FRACTION_EMPTY,
-					"N unique values", "Fraction unique values",
-					ScanFieldName.AVERAGE, ScanFieldName.STDEV,
-					ScanFieldName.MIN, ScanFieldName.Q1, ScanFieldName.Q2, ScanFieldName.Q3, ScanFieldName.MAX
+					ScanFieldName.UNIQUE_COUNT, ScanFieldName.FRACTION_UNIQUE
 			);
 			int sheetIndex = 0;
 			Map<String, String> sheetNameLookup = new HashMap<>();

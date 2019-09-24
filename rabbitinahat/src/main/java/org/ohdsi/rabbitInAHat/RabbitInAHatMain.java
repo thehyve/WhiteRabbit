@@ -338,11 +338,11 @@ public class RabbitInAHatMain implements ResizeListener {
 
 		JRadioButtonMenuItem explorationMode = new JRadioButtonMenuItem(ACTION_SET_SOURCE_EXPLORATION_MODE);
 		viewGroup.add(explorationMode);
-		targetMenu.add(explorationMode).addActionListener(evt -> this.setSourceExplorationMode());
+		viewMenu.add(explorationMode).addActionListener(evt -> this.setSourceExplorationMode());
 
 		JRadioButtonMenuItem mappingMode = new JRadioButtonMenuItem(ACTION_SET_MAPPING_MODE, true);
 		viewGroup.add(mappingMode);
-		targetMenu.add(mappingMode).addActionListener(evt -> this.setMappingMode());
+		viewMenu.add(mappingMode).addActionListener(evt -> this.setMappingMode());
 
 		JMenu helpMenu = new JMenu("Help");
 		menuBar.add(helpMenu);

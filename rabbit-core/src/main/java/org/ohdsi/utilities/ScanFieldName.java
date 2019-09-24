@@ -8,13 +8,17 @@ public interface ScanFieldName {
     String N_ROWS = "N rows";
     String N_ROWS_CHECKED = "N rows checked";
     String FRACTION_EMPTY = "Fraction empty";
-    String AVERAGE = "Average";
-    String STDEV = "Standard Deviation";
-    String MIN = "Min";
-    String Q1 = "25%";
-    String Q2 = "Median";
-    String Q3 = "75%";
-    String MAX = "Max";
+    String UNIQUE_COUNT = "N unique values";
+    String FRACTION_UNIQUE = "Fraction unique";
+    String SOURCE_DESCRIPTION = "Description";
+    String SOURCE_ALIAS = "Alias";
+//    String AVERAGE = "Average";
+//    String STDEV = "Standard Deviation";
+//    String MIN = "Min";
+//    String Q1 = "25%";
+//    String Q2 = "Median";
+//    String Q3 = "75%";
+//    String MAX = "Max%";
 }
 
 
