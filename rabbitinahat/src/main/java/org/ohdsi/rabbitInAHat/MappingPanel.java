@@ -83,6 +83,7 @@ public class MappingPanel extends JPanel implements MouseListener, MouseMotionLi
 	private boolean					minimized					= false;
 	private MappingPanel			slaveMappingPanel;
 	private boolean					showOnlyConnectedItems		= false;
+	private boolean					showTarget					= true;
 
 	private int						shortcutMask				= Toolkit.getDefaultToolkit().getMenuShortcutKeyMask();
 
@@ -155,6 +156,14 @@ public class MappingPanel extends JPanel implements MouseListener, MouseMotionLi
 		renderModel();
 	}
 
+	public void setShowTarget(boolean showTarget) {
+		this.showTarget = showTarget;
+		if (this.slaveMappingPanel != null) {
+			this.slaveMappingPanel.setShowTarget(showTarget);
+		}
+		this.renderModel();
+	}
+
 	private void renderModel() {
 		sourceComponents.clear();
 		cdmComponents.clear();
@@ -174,8 +183,11 @@ public class MappingPanel extends JPanel implements MouseListener, MouseMotionLi
 					cdmComponents.add(new LabeledRectangle(0, 400, ITEM_WIDTH, ITEM_HEIGHT, item, new Color(128, 128, 255)));
 			}
 		for (ItemToItemMap map : mapping.getSourceToTargetMaps()) {
-			Arrow component = new Arrow(getComponentWithItem(map.getSourceItem(), sourceComponents), getComponentWithItem(map.getTargetItem(), cdmComponents),
-					map);
+			Arrow component = new Arrow(
+					getComponentWithItem(map.getSourceItem(), sourceComponents),
+					getComponentWithItem(map.getTargetItem(), cdmComponents),
+					map
+			);
 			arrows.add(component);
 		}
 		layoutItems();
@@ -308,26 +320,34 @@ public class MappingPanel extends JPanel implements MouseListener, MouseMotionLi
 
 		g2d.setColor(Color.BLACK);
 		addLabel(g2d, this.getSourceDbName(), sourceX + ITEM_WIDTH / 2, HEADER_TOP_MARGIN + HEADER_HEIGHT / 2);
-		addLabel(g2d, this.getTargetDbName(), cdmX + ITEM_WIDTH / 2, HEADER_TOP_MARGIN + HEADER_HEIGHT / 2);
+		if (showTarget) {
+			addLabel(g2d, this.getTargetDbName(), cdmX + ITEM_WIDTH / 2, HEADER_TOP_MARGIN + HEADER_HEIGHT / 2);
+		}
 
-		if (showingArrowStarts && dragRectangle == null) {
+		if (showTarget && showingArrowStarts && dragRectangle == null) {
 			for (LabeledRectangle item : getVisibleSourceComponents())
 				Arrow.drawArrowHead(g2d, Math.round(item.getX() + item.getWidth() + Arrow.headThickness), item.getY() + item.getHeight() / 2);
 		}
 
-		for (LabeledRectangle component : getVisibleSourceComponents())
-			if (component != dragRectangle)
+		for (LabeledRectangle component : getVisibleSourceComponents()) {
+			if (component != dragRectangle) {
 				component.paint(g2d);
+			}
+		}
 
-		for (LabeledRectangle component : getVisibleTargetComponents())
-			if (component != dragRectangle)
-				component.paint(g2d);
+		if (showTarget) {
+			for (LabeledRectangle component : getVisibleTargetComponents()) {
+				if (component != dragRectangle) {
+					component.paint(g2d);
+				}
+			}
 
-		for (int i = HighlightStatus.values().length - 1; i >= 0; i--) {
-			HighlightStatus status = HighlightStatus.values()[i];
-			for (Arrow arrow : arrowsByStatus(status)) {
-				if (arrow != dragArrow) {
-					arrow.paint(g2d);
+			for (int i = HighlightStatus.values().length - 1; i >= 0; i--) {
+				HighlightStatus status = HighlightStatus.values()[i];
+				for (Arrow arrow : arrowsByStatus(status)) {
+					if (arrow != dragArrow) {
+						arrow.paint(g2d);
+					}
 				}
 			}
 		}
@@ -732,6 +752,32 @@ public class MappingPanel extends JPanel implements MouseListener, MouseMotionLi
 
 				detailsListener.showDetails(component.getItem());
 				repaint();
+
+				// WIP
+				// TODO: This now shows (random) target table fields.
+				// TODO: make display of fields independent of (zoom)Arrow.
+				if (event.getClickCount() == 2) {
+					if (slaveMappingPanel != null) {
+						slaveMappingPanel.setMapping(
+								ObjectExchange.etl.getFieldToFieldMapping(
+										(Table) component.getItem(),
+										(Table) components.get(0).getItem()
+								)
+						);
+
+						// Dummy arrow, something needed
+						zoomArrow = new Arrow(
+								component,
+								components.get(0)
+						);
+
+						new AnimateThread(true).start();
+
+						slaveMappingPanel.filterComponents("", false);
+						slaveMappingPanel.filterComponents("", true);
+					}
+				}
+				// End WIP
 				break;
 			}
 		}
