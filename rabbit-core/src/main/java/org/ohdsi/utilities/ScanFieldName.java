@@ -10,6 +10,8 @@ public interface ScanFieldName {
     String FRACTION_EMPTY = "Fraction empty";
     String UNIQUE_COUNT = "N unique values";
     String FRACTION_UNIQUE = "Fraction unique";
+    String SOURCE_DESCRIPTION = "Description";
+    String SOURCE_ALIAS = "Alias";
 //    String AVERAGE = "Average";
 //    String STDEV = "Standard Deviation";
 //    String MIN = "Min";
