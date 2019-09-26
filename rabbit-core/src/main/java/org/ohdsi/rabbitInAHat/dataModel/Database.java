@@ -29,6 +29,7 @@ import java.util.Map;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
+import org.ohdsi.utilities.ScanFieldName;
 import org.ohdsi.utilities.files.QuickAndDirtyXlsxReader;
 import org.ohdsi.utilities.files.QuickAndDirtyXlsxReader.Sheet;
 
@@ -130,43 +131,35 @@ public class Database implements Serializable {
 
 	public static Database generateModelFromScanReport(String filename) {
 		Database database = new Database();
-		Map<String, Table> nameToTable = new HashMap<String, Table>();
+		Map<String, Table> nameToTable = new HashMap<>();
 		QuickAndDirtyXlsxReader workbook = new QuickAndDirtyXlsxReader(filename);
 		Sheet sheet = workbook.get(0);
 		Iterator<org.ohdsi.utilities.files.QuickAndDirtyXlsxReader.Row> iterator = sheet.iterator();
-		Map<String, Integer> fieldName2ColumnIndex = new HashMap<String, Integer>();
-		for (String header : iterator.next())
-			fieldName2ColumnIndex.put(header, fieldName2ColumnIndex.size());
 
+		iterator.next();  // Skip header
 		while (iterator.hasNext()) {
 			org.ohdsi.utilities.files.QuickAndDirtyXlsxReader.Row row = iterator.next();
-			String tableName = row.get(fieldName2ColumnIndex.get("Table"));
+			String tableName = row.getStringByHeaderName(ScanFieldName.TABLE);
 			if (tableName.length() != 0) {
 				Table table = nameToTable.get(tableName);
 				if (table == null) {
 					table = new Table();
 					table.setName(tableName.toLowerCase());
-					table.setRowCount((int) Double.parseDouble(row.get(fieldName2ColumnIndex.get("N rows"))));
-					table.setRowsCheckedCount((int) Double.parseDouble(row.get(fieldName2ColumnIndex.get("N rows checked"))));
+					table.setRowCount(row.getIntByHeaderName(ScanFieldName.N_ROWS));
+					table.setRowCheckedCount(row.getIntByHeaderName(ScanFieldName.N_ROWS_CHECKED));
 					nameToTable.put(tableName, table);
 					database.tables.add(table);
 				}
-				String fieldName = row.get(fieldName2ColumnIndex.get("Field"));
+				String fieldName = row.getStringByHeaderName(ScanFieldName.FIELD);
 				Field field = new Field(fieldName.toLowerCase(), table);
-				Integer index;
-				// Someone may have manually deleted data, so can't assume this
-				// is always there:
-				index = fieldName2ColumnIndex.get("Fraction empty");
-				if (index != null && index < row.size())
-					field.setNullable(!row.get(index).equals("0"));
 
-				index = fieldName2ColumnIndex.get("Type");
-				if (index != null && index < row.size())
-					field.setType(row.get(index));
+				field.setType(row.getByHeaderName(ScanFieldName.TYPE));
+				field.setMaxLength(row.getIntByHeaderName(ScanFieldName.MAX_LENGTH));
+				field.setFractionEmpty(row.getDoubleByHeaderName(ScanFieldName.FRACTION_EMPTY));
+				field.setUniqueCount(row.getIntByHeaderName(ScanFieldName.UNIQUE_COUNT));
+				field.setFractionUnique(row.getDoubleByHeaderName(ScanFieldName.FRACTION_UNIQUE));
+				field.setDescription(row.getStringByHeaderName(ScanFieldName.SOURCE_DESCRIPTION));
 
-				index = fieldName2ColumnIndex.get("Max length");
-				if (index != null && index >= 0 && index < row.size())
-					field.setMaxLength((int) (Double.parseDouble(row.get(index))));
 				field.setValueCounts(getValueCounts(workbook, tableName, fieldName));
 				table.getFields().add(field);
 			}
