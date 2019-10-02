@@ -29,7 +29,7 @@ public class DbType {
 
 	private enum Type {
 		MYSQL, MSSQL, PDW, ORACLE, POSTGRESQL, MSACCESS, REDSHIFT, TERADATA
-	};
+	}
 
 	private Type type;
 
@@ -38,9 +38,6 @@ public class DbType {
 	}
 
 	public boolean equals(Object other) {
-		if (other instanceof DbType && ((DbType) other).type == type)
-			return true;
-		else
-			return false;
+		return other instanceof DbType && ((DbType) other).type == type;
 	}
 }
