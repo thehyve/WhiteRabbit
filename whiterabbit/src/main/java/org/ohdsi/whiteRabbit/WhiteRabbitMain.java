@@ -205,14 +205,14 @@ public class WhiteRabbitMain implements ActionListener {
 			else if (dataType.equalsIgnoreCase(DataType.TERADATA.label))
 				dbSettings.dbType = DbType.TERADATA;
 
-			if (dataType.equalsIgnoreCase(DataType.SQLSERVER.label) || dataType.equalsIgnoreCase(DataType.PDW.label)) {
-                if (iniFile.get("USER_NAME").length() != 0) { // Not using windows authentication
-                    String[] parts = iniFile.get("USER_NAME").split("/");
-                    if (parts.length == 2) {
-                        dbSettings.user = parts[1];
-                        dbSettings.domain = parts[0];
-                    }
-                }
+			boolean pdwOrMssql = dataType.equalsIgnoreCase(DataType.SQLSERVER.label)
+					|| dataType.equalsIgnoreCase(DataType.PDW.label);
+			if (pdwOrMssql && iniFile.get("USER_NAME").length() != 0) { // Not using windows authentication
+				String[] parts = iniFile.get("USER_NAME").split("/");
+				if (parts.length == 2) {
+					dbSettings.user = parts[1];
+					dbSettings.domain = parts[0];
+				}
             }
 		}
 		if (iniFile.get("TABLES_TO_SCAN").equalsIgnoreCase("*")) {
