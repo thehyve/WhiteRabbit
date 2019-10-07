@@ -243,17 +243,14 @@ public class WhiteRabbitMain implements ActionListener {
 		sourcePanel.add(new JLabel("Data type"));
         sourceType = new JComboBox<String>(ResourceType.getAllLabels().toArray(new String[0]));
 		sourceType.setToolTipText("Select the type of source data available");
-		sourceType.addItemListener(new ItemListener() {
 
-			@Override
-			public void itemStateChanged(ItemEvent arg0) {
-                String dataType = arg0.getItem().toString();
-                boolean isFiles = dataType.equals(ResourceType.DELIMITED.label);
-                updateFieldProperties(dataType, sourceServerField, sourceUserField, sourcePasswordField,
-                        sourceDatabaseField);
-                sourceDelimiterField.setEnabled(isFiles);
-                addAllButton.setEnabled(!dataType.equals(ResourceType.DELIMITED.label));
-			}
+		sourceType.addItemListener((ItemEvent arg0) -> {
+			String dataType = arg0.getItem().toString();
+			boolean isFiles = dataType.equals(ResourceType.DELIMITED.label);
+			updateFieldProperties(dataType, sourceServerField, sourceUserField, sourcePasswordField,
+					sourceDatabaseField);
+			sourceDelimiterField.setEnabled(isFiles);
+			addAllButton.setEnabled(!dataType.equals(ResourceType.DELIMITED.label));
 		});
 		sourcePanel.add(sourceType);
 
@@ -431,16 +428,13 @@ public class WhiteRabbitMain implements ActionListener {
 		targetPanel.add(new JLabel("Data type"));
 		targetType = new JComboBox<String>(new String[] { "Delimited text files", "MySQL", "Oracle", "SQL Server", "PostgreSQL" });
 		targetType.setToolTipText("Select the type of source data available");
-		targetType.addItemListener(new ItemListener() {
-
-			@Override
-			public void itemStateChanged(ItemEvent arg0) {
-                String dataType = arg0.getItem().toString();
-                updateFieldProperties(dataType, targetServerField, targetUserField, targetPasswordField,
-                        targetDatabaseField);
-                targetCSVFormat.setEnabled(dataType.equals(ResourceType.DELIMITED.label));
-			}
+		targetType.addItemListener((ItemEvent arg0) -> {
+			String dataType = arg0.getItem().toString();
+			updateFieldProperties(dataType, targetServerField, targetUserField, targetPasswordField,
+					targetDatabaseField);
+			targetCSVFormat.setEnabled(dataType.equals(ResourceType.DELIMITED.label));
 		});
+
 		targetPanel.add(targetType);
 
 		targetPanel.add(new JLabel("Server location"));
