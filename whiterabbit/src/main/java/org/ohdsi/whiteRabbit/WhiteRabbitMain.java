@@ -230,11 +230,7 @@ public class WhiteRabbitMain implements ActionListener {
 		JButton pickButton = new JButton("Pick folder");
 		pickButton.setToolTipText("Pick a different working folder");
 		folderPanel.add(pickButton);
-		pickButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				pickFolder();
-			}
-		});
+		pickButton.addActionListener((ActionEvent e) -> pickFolder());
 		componentsToDisableWhenRunning.add(pickButton);
 		c.gridx = 0;
 		c.gridy = 0;
@@ -295,11 +291,8 @@ public class WhiteRabbitMain implements ActionListener {
 		JButton testConnectionButton = new JButton("Test connection");
 		testConnectionButton.setBackground(new Color(151, 220, 141));
 		testConnectionButton.setToolTipText("Test the connection");
-		testConnectionButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				testConnection(getSourceDbSettings());
-			}
-		});
+
+		testConnectionButton.addActionListener((ActionEvent e) -> testConnection(getSourceDbSettings()));
 		componentsToDisableWhenRunning.add(testConnectionButton);
 		testConnectionButtonPanel.add(testConnectionButton);
 
@@ -326,28 +319,19 @@ public class WhiteRabbitMain implements ActionListener {
 		tableButtonPanel.setLayout(new GridLayout(3, 1));
 		addAllButton = new JButton("Add all in DB");
 		addAllButton.setToolTipText("Add all tables in the database");
-		addAllButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				addAllTables();
-			}
-		});
+
+		addAllButton.addActionListener((ActionEvent e) -> addAllTables());
 		addAllButton.setEnabled(false);
 		tableButtonPanel.add(addAllButton);
 		JButton addButton = new JButton("Add");
 		addButton.setToolTipText("Add tables to list");
-		addButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				pickTables();
-			}
-		});
+
+		addButton.addActionListener((ActionEvent e) -> pickTables());
 		tableButtonPanel.add(addButton);
 		JButton removeButton = new JButton("Remove");
 		removeButton.setToolTipText("Remove tables from list");
-		removeButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				removeTables();
-			}
-		});
+		removeButton.addActionListener((ActionEvent e) -> removeTables());
+
 		tableButtonPanel.add(removeButton);
 		tablePanel.add(tableButtonPanel, BorderLayout.EAST);
 
@@ -404,11 +388,8 @@ public class WhiteRabbitMain implements ActionListener {
 		JButton scanButton = new JButton("Scan tables");
 		scanButton.setBackground(new Color(151, 220, 141));
 		scanButton.setToolTipText("Scan the selected tables");
-		scanButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				scanRun();
-			}
-		});
+		scanButton.addActionListener((ActionEvent e) -> scanRun());
+
 		componentsToDisableWhenRunning.add(scanButton);
 		scanButtonPanel.add(scanButton);
 		southPanel.add(scanButtonPanel);
@@ -436,11 +417,8 @@ public class WhiteRabbitMain implements ActionListener {
 		JButton pickButton = new JButton("Pick file");
 		pickButton.setToolTipText("Pick a scan report file");
 		folderPanel.add(pickButton);
-		pickButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				pickScanReportFile();
-			}
-		});
+
+		pickButton.addActionListener((ActionEvent e) -> pickScanReportFile());
 		componentsToDisableWhenRunning.add(pickButton);
 		c.gridx = 0;
 		c.gridy = 0;
@@ -506,22 +484,16 @@ public class WhiteRabbitMain implements ActionListener {
 		JButton testConnectionButton = new JButton("Test connection");
 		testConnectionButton.setBackground(new Color(151, 220, 141));
 		testConnectionButton.setToolTipText("Test the connection");
-		testConnectionButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				testConnection(getTargetDbSettings());
-			}
-		});
+		testConnectionButton.addActionListener((ActionEvent e) -> testConnection(getTargetDbSettings()));
+
 		componentsToDisableWhenRunning.add(testConnectionButton);
 		fakeDataButtonPanel.add(testConnectionButton);
 
 		JButton fakeDataButton = new JButton("Generate fake data");
 		fakeDataButton.setBackground(new Color(151, 220, 141));
 		fakeDataButton.setToolTipText("Generate fake data based on the scan report");
-		fakeDataButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				fakeDataRun();
-			}
-		});
+		fakeDataButton.addActionListener((ActionEvent e) -> fakeDataRun());
+
 		componentsToDisableWhenRunning.add(fakeDataButton);
 		fakeDataButtonPanel.add(fakeDataButton);
 
