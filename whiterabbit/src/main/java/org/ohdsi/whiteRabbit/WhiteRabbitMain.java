@@ -17,30 +17,12 @@
  ******************************************************************************/
 package org.ohdsi.whiteRabbit;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Desktop;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.GridLayout;
-import java.awt.Image;
-import java.awt.MediaTracker;
-import java.awt.Toolkit;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Vector;
+import org.ohdsi.databases.RichConnection;
+import org.ohdsi.utilities.DirectoryUtilities;
+import org.ohdsi.utilities.StringUtilities;
+import org.ohdsi.utilities.files.IniFile;
+import org.ohdsi.whiteRabbit.fakeDataGenerator.FakeDataGenerator;
+import org.ohdsi.whiteRabbit.scan.SourceDataScan;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -69,15 +51,29 @@ import javax.swing.border.TitledBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
-
-import org.apache.commons.csv.CSVFormat;
-import org.ohdsi.databases.DbType;
-import org.ohdsi.databases.RichConnection;
-import org.ohdsi.utilities.DirectoryUtilities;
-import org.ohdsi.utilities.StringUtilities;
-import org.ohdsi.utilities.files.IniFile;
-import org.ohdsi.whiteRabbit.fakeDataGenerator.FakeDataGenerator;
-import org.ohdsi.whiteRabbit.scan.SourceDataScan;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Desktop;
+import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.GridLayout;
+import java.awt.Image;
+import java.awt.MediaTracker;
+import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Vector;
 
 /**
  * This is the WhiteRabbit main class
@@ -111,8 +107,6 @@ public class WhiteRabbitMain implements ActionListener {
 	private JButton				addAllButton;
 	private JList<String>		tableList;
 	private Vector<String>		tables							= new Vector<String>();
-	private boolean				sourceIsFiles					= true;
-	private boolean				targetIsFiles					= false;
 
 	private List<JComponent>	componentsToDisableWhenRunning	= new ArrayList<JComponent>();
 
@@ -149,61 +143,7 @@ public class WhiteRabbitMain implements ActionListener {
 
 	private void launchCommandLine(String iniFileName) {
 		IniFile iniFile = new IniFile(iniFileName);
-		DbSettings dbSettings = new DbSettings();
-		if (iniFile.get("DATA_TYPE").equalsIgnoreCase("Delimited text files")) {
-			dbSettings.dataType = DbSettings.CSVFILES;
-			if (iniFile.get("DELIMITER").equalsIgnoreCase("tab"))
-				dbSettings.delimiter = '\t';
-			else
-				dbSettings.delimiter = iniFile.get("DELIMITER").charAt(0);
-		} else {
-			dbSettings.dataType = DbSettings.DATABASE;
-			dbSettings.user = iniFile.get("USER_NAME");
-			dbSettings.password = iniFile.get("PASSWORD");
-			dbSettings.server = iniFile.get("SERVER_LOCATION");
-			dbSettings.database = iniFile.get("DATABASE_NAME");
-			if (iniFile.get("DATA_TYPE").equalsIgnoreCase("MySQL"))
-				dbSettings.dbType = DbType.MYSQL;
-			else if (iniFile.get("DATA_TYPE").equalsIgnoreCase("Oracle"))
-				dbSettings.dbType = DbType.ORACLE;
-			else if (iniFile.get("DATA_TYPE").equalsIgnoreCase("PostgreSQL"))
-				dbSettings.dbType = DbType.POSTGRESQL;
-			else if (iniFile.get("DATA_TYPE").equalsIgnoreCase("Redshift"))
-				dbSettings.dbType = DbType.REDSHIFT;
-			else if (iniFile.get("DATA_TYPE").equalsIgnoreCase("SQL Server")) {
-				dbSettings.dbType = DbType.MSSQL;
-				if (iniFile.get("USER_NAME").length() != 0) { // Not using windows authentication
-					String[] parts = iniFile.get("USER_NAME").split("/");
-					if (parts.length == 2) {
-						dbSettings.user = parts[1];
-						dbSettings.domain = parts[0];
-					}
-				}
-			} else if (iniFile.get("DATA_TYPE").equalsIgnoreCase("PDW")) {
-				dbSettings.dbType = DbType.PDW;
-				if (iniFile.get("USER_NAME").length() != 0) { // Not using windows authentication
-					String[] parts = iniFile.get("USER_NAME").split("/");
-					if (parts.length == 2) {
-						dbSettings.user = parts[1];
-						dbSettings.domain = parts[0];
-					}
-				}
-			} else if (iniFile.get("DATA_TYPE").equalsIgnoreCase("MS Access"))
-				dbSettings.dbType = DbType.MSACCESS;
-			else if (iniFile.get("DATA_TYPE").equalsIgnoreCase("Teradata"))
-				dbSettings.dbType = DbType.TERADATA;
-		}
-		if (iniFile.get("TABLES_TO_SCAN").equalsIgnoreCase("*")) {
-			try (RichConnection connection = new RichConnection(dbSettings.server, dbSettings.domain, dbSettings.user, dbSettings.password, dbSettings.dbType)) {
-				dbSettings.tables.addAll(connection.getTableNames(dbSettings.database));
-			}
-		} else {
-			for (String table : iniFile.get("TABLES_TO_SCAN").split(",")) {
-				if (dbSettings.dataType == DbSettings.CSVFILES)
-					table = iniFile.get("WORKING_FOLDER") + "/" + table;
-				dbSettings.tables.add(table);
-			}
-		}
+		DbSettings dbSettings = new DbSettings(iniFile);
 
 		SourceDataScan sourceDataScan = new SourceDataScan();
 		int maxRows = Integer.parseInt(iniFile.get("ROWS_PER_TABLE"));
@@ -228,6 +168,47 @@ public class WhiteRabbitMain implements ActionListener {
 		return tabbedPane;
 	}
 
+
+    private void updateFieldProperties(String dataType,
+                                      JTextField serverField,
+                                      JTextField userField,
+                                      JTextField passwordField,
+                                      JTextField databaseField) {
+		boolean isDatabase = !dataType.equals(ResourceType.DELIMITED.label);
+        serverField.setEnabled(isDatabase);
+        userField.setEnabled(isDatabase);
+        passwordField.setEnabled(isDatabase);
+        databaseField.setEnabled(isDatabase);
+
+        if (dataType.equals(ResourceType.ORACLE.label)) {
+            serverField.setToolTipText("For Oracle servers this field contains the SID, servicename, " +
+                    "and optionally the port: '<host>/<sid>', '<host>:<port>/<sid>', " +
+                    "'<host>/<service name>', or '<host>:<port>/<service name>'");
+            userField.setToolTipText("For Oracle servers this field contains the name of the user used to log in");
+            passwordField.setToolTipText("For Oracle servers this field contains the password " +
+                    "corresponding to the user");
+            databaseField.setToolTipText("For Oracle servers this field contains the schema (i.e. 'user' in " +
+                    "Oracle terms) containing the source tables");
+        } else if (dataType.equals(ResourceType.POSTGRESQL.label)) {
+            serverField.setToolTipText("For PostgreSQL servers this field contains the host name and database " +
+                    "name (<host>/<database>)");
+            userField.setToolTipText("The user used to log in to the server");
+            passwordField.setToolTipText("The password used to log in to the server");
+            databaseField.setToolTipText("For PostgreSQL servers this field contains the schema containing " +
+                    "the source tables");
+        } else if (isDatabase) {
+            serverField.setToolTipText("This field contains the name or IP address of the database server");
+            if (dataType.equals(ResourceType.MSSQL.label))
+                userField.setToolTipText("The user used to log in to the server. Optionally, the domain can " +
+                        "be specified as <domain>/<user> (e.g. 'MyDomain/Joe')");
+            else
+                userField.setToolTipText("The user used to log in to the server");
+            passwordField.setToolTipText("The password used to log in to the server");
+            databaseField.setToolTipText("The name of the database containing the source tables");
+        }
+    }
+
+
 	private JPanel createLocationsPanel() {
 		JPanel panel = new JPanel();
 
@@ -246,11 +227,7 @@ public class WhiteRabbitMain implements ActionListener {
 		JButton pickButton = new JButton("Pick folder");
 		pickButton.setToolTipText("Pick a different working folder");
 		folderPanel.add(pickButton);
-		pickButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				pickFolder();
-			}
-		});
+		pickButton.addActionListener((ActionEvent e) -> pickFolder());
 		componentsToDisableWhenRunning.add(pickButton);
 		c.gridx = 0;
 		c.gridy = 0;
@@ -261,43 +238,16 @@ public class WhiteRabbitMain implements ActionListener {
 		sourcePanel.setLayout(new GridLayout(0, 2));
 		sourcePanel.setBorder(BorderFactory.createTitledBorder("Source data location"));
 		sourcePanel.add(new JLabel("Data type"));
-		sourceType = new JComboBox<String>(new String[] { "Delimited text files", "MySQL", "Oracle", "SQL Server", "PostgreSQL", "MS Access", "PDW", "Redshift", "Teradata" });
+        sourceType = new JComboBox<String>(ResourceType.getAllLabels());
 		sourceType.setToolTipText("Select the type of source data available");
-		sourceType.addItemListener(new ItemListener() {
 
-			@Override
-			public void itemStateChanged(ItemEvent arg0) {
-				sourceIsFiles = arg0.getItem().toString().equals("Delimited text files");
-				sourceServerField.setEnabled(!sourceIsFiles);
-				sourceUserField.setEnabled(!sourceIsFiles);
-				sourcePasswordField.setEnabled(!sourceIsFiles);
-				sourceDatabaseField.setEnabled(!sourceIsFiles);
-				sourceDelimiterField.setEnabled(sourceIsFiles);
-				addAllButton.setEnabled(!sourceIsFiles);
-
-				if (!sourceIsFiles && arg0.getItem().toString().equals("Oracle")) {
-					sourceServerField
-							.setToolTipText("For Oracle servers this field contains the SID, servicename, and optionally the port: '<host>/<sid>', '<host>:<port>/<sid>', '<host>/<service name>', or '<host>:<port>/<service name>'");
-					sourceUserField.setToolTipText("For Oracle servers this field contains the name of the user used to log in");
-					sourcePasswordField.setToolTipText("For Oracle servers this field contains the password corresponding to the user");
-					sourceDatabaseField
-							.setToolTipText("For Oracle servers this field contains the schema (i.e. 'user' in Oracle terms) containing the source tables");
-				} else if (!sourceIsFiles && arg0.getItem().toString().equals("PostgreSQL")) {
-					sourceServerField.setToolTipText("For PostgreSQL servers this field contains the host name and database name (<host>/<database>)");
-					sourceUserField.setToolTipText("The user used to log in to the server");
-					sourcePasswordField.setToolTipText("The password used to log in to the server");
-					sourceDatabaseField.setToolTipText("For PostgreSQL servers this field contains the schema containing the source tables");
-				} else if (!sourceIsFiles) {
-					sourceServerField.setToolTipText("This field contains the name or IP address of the database server");
-					if (arg0.getItem().toString().equals("SQL Server"))
-						sourceUserField
-								.setToolTipText("The user used to log in to the server. Optionally, the domain can be specified as <domain>/<user> (e.g. 'MyDomain/Joe')");
-					else
-						sourceUserField.setToolTipText("The user used to log in to the server");
-					sourcePasswordField.setToolTipText("The password used to log in to the server");
-					sourceDatabaseField.setToolTipText("The name of the database containing the source tables");
-				}
-			}
+		sourceType.addItemListener((ItemEvent arg0) -> {
+			String dataType = arg0.getItem().toString();
+			boolean isFiles = dataType.equals(ResourceType.DELIMITED.label);
+			updateFieldProperties(dataType, sourceServerField, sourceUserField, sourcePasswordField,
+					sourceDatabaseField);
+			sourceDelimiterField.setEnabled(isFiles);
+			addAllButton.setEnabled(!dataType.equals(ResourceType.DELIMITED.label));
 		});
 		sourcePanel.add(sourceType);
 
@@ -335,11 +285,8 @@ public class WhiteRabbitMain implements ActionListener {
 		JButton testConnectionButton = new JButton("Test connection");
 		testConnectionButton.setBackground(new Color(151, 220, 141));
 		testConnectionButton.setToolTipText("Test the connection");
-		testConnectionButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				testConnection(getSourceDbSettings());
-			}
-		});
+
+		testConnectionButton.addActionListener((ActionEvent e) -> testConnection(getSourceDbSettings()));
 		componentsToDisableWhenRunning.add(testConnectionButton);
 		testConnectionButtonPanel.add(testConnectionButton);
 
@@ -366,28 +313,19 @@ public class WhiteRabbitMain implements ActionListener {
 		tableButtonPanel.setLayout(new GridLayout(3, 1));
 		addAllButton = new JButton("Add all in DB");
 		addAllButton.setToolTipText("Add all tables in the database");
-		addAllButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				addAllTables();
-			}
-		});
+
+		addAllButton.addActionListener((ActionEvent e) -> addAllTables());
 		addAllButton.setEnabled(false);
 		tableButtonPanel.add(addAllButton);
 		JButton addButton = new JButton("Add");
 		addButton.setToolTipText("Add tables to list");
-		addButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				pickTables();
-			}
-		});
+
+		addButton.addActionListener((ActionEvent e) -> pickTables());
 		tableButtonPanel.add(addButton);
 		JButton removeButton = new JButton("Remove");
 		removeButton.setToolTipText("Remove tables from list");
-		removeButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				removeTables();
-			}
-		});
+		removeButton.addActionListener((ActionEvent e) -> removeTables());
+
 		tableButtonPanel.add(removeButton);
 		tablePanel.add(tableButtonPanel, BorderLayout.EAST);
 
@@ -444,11 +382,8 @@ public class WhiteRabbitMain implements ActionListener {
 		JButton scanButton = new JButton("Scan tables");
 		scanButton.setBackground(new Color(151, 220, 141));
 		scanButton.setToolTipText("Scan the selected tables");
-		scanButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				scanRun();
-			}
-		});
+		scanButton.addActionListener((ActionEvent e) -> scanRun());
+
 		componentsToDisableWhenRunning.add(scanButton);
 		scanButtonPanel.add(scanButton);
 		southPanel.add(scanButtonPanel);
@@ -476,11 +411,8 @@ public class WhiteRabbitMain implements ActionListener {
 		JButton pickButton = new JButton("Pick file");
 		pickButton.setToolTipText("Pick a scan report file");
 		folderPanel.add(pickButton);
-		pickButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				pickScanReportFile();
-			}
-		});
+
+		pickButton.addActionListener((ActionEvent e) -> pickScanReportFile());
 		componentsToDisableWhenRunning.add(pickButton);
 		c.gridx = 0;
 		c.gridy = 0;
@@ -492,43 +424,14 @@ public class WhiteRabbitMain implements ActionListener {
 		targetPanel.setBorder(BorderFactory.createTitledBorder("Target data location"));
 		targetPanel.add(new JLabel("Data type"));
 		targetType = new JComboBox<String>(new String[] { "Delimited text files", "MySQL", "Oracle", "SQL Server", "PostgreSQL" });
-		// targetType = new JComboBox(new String[] { "Delimited text files", "MySQL" });
 		targetType.setToolTipText("Select the type of source data available");
-		targetType.addItemListener(new ItemListener() {
-
-			@Override
-			public void itemStateChanged(ItemEvent arg0) {
-				targetIsFiles = arg0.getItem().toString().equals("Delimited text files");
-				targetServerField.setEnabled(!targetIsFiles);
-				targetUserField.setEnabled(!targetIsFiles);
-				targetPasswordField.setEnabled(!targetIsFiles);
-				targetDatabaseField.setEnabled(!targetIsFiles);
-				targetCSVFormat.setEnabled(targetIsFiles);
-
-				if (!targetIsFiles && arg0.getItem().toString().equals("Oracle")) {
-					targetServerField
-							.setToolTipText("For Oracle servers this field contains the SID, servicename, and optionally the port: '<host>/<sid>', '<host>:<port>/<sid>', '<host>/<service name>', or '<host>:<port>/<service name>'");
-					targetUserField.setToolTipText("For Oracle servers this field contains the name of the user used to log in");
-					targetPasswordField.setToolTipText("For Oracle servers this field contains the password corresponding to the user");
-					targetDatabaseField
-							.setToolTipText("For Oracle servers this field contains the schema (i.e. 'user' in Oracle terms) containing the source tables");
-				} else if (!targetIsFiles && arg0.getItem().toString().equals("PostgreSQL")) {
-					targetServerField.setToolTipText("For PostgreSQL servers this field contains the host name and database name (<host>/<database>)");
-					targetUserField.setToolTipText("The user used to log in to the server");
-					targetPasswordField.setToolTipText("The password used to log in to the server");
-					targetDatabaseField.setToolTipText("For PostgreSQL servers this field contains the schema containing the source tables");
-				} else if (!targetIsFiles) {
-					targetServerField.setToolTipText("This field contains the name or IP address of the database server");
-					if (arg0.getItem().toString().equals("SQL Server"))
-						targetUserField
-								.setToolTipText("The user used to log in to the server. Optionally, the domain can be specified as <domain>/<user> (e.g. 'MyDomain/Joe')");
-					else
-						targetUserField.setToolTipText("The user used to log in to the server");
-					targetPasswordField.setToolTipText("The password used to log in to the server");
-					targetDatabaseField.setToolTipText("The name of the database containing the source tables");
-				}
-			}
+		targetType.addItemListener((ItemEvent arg0) -> {
+			String dataType = arg0.getItem().toString();
+			updateFieldProperties(dataType, targetServerField, targetUserField, targetPasswordField,
+					targetDatabaseField);
+			targetCSVFormat.setEnabled(dataType.equals(ResourceType.DELIMITED.label));
 		});
+
 		targetPanel.add(targetType);
 
 		targetPanel.add(new JLabel("Server location"));
@@ -572,22 +475,16 @@ public class WhiteRabbitMain implements ActionListener {
 		JButton testConnectionButton = new JButton("Test connection");
 		testConnectionButton.setBackground(new Color(151, 220, 141));
 		testConnectionButton.setToolTipText("Test the connection");
-		testConnectionButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				testConnection(getTargetDbSettings());
-			}
-		});
+		testConnectionButton.addActionListener((ActionEvent e) -> testConnection(getTargetDbSettings()));
+
 		componentsToDisableWhenRunning.add(testConnectionButton);
 		fakeDataButtonPanel.add(testConnectionButton);
 
 		JButton fakeDataButton = new JButton("Generate fake data");
 		fakeDataButton.setBackground(new Color(151, 220, 141));
 		fakeDataButton.setToolTipText("Generate fake data based on the scan report");
-		fakeDataButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				fakeDataRun();
-			}
-		});
+		fakeDataButton.addActionListener((ActionEvent e) -> fakeDataRun());
+
 		componentsToDisableWhenRunning.add(fakeDataButton);
 		fakeDataButtonPanel.add(fakeDataButton);
 
@@ -719,59 +616,26 @@ public class WhiteRabbitMain implements ActionListener {
 	}
 
 	private DbSettings getSourceDbSettings() {
-		DbSettings dbSettings = new DbSettings();
-		if (sourceType.getSelectedItem().equals("Delimited text files")) {
-			dbSettings.dataType = DbSettings.CSVFILES;
-			if (sourceDelimiterField.getText().length() == 0) {
-				JOptionPane.showMessageDialog(frame, "Delimiter field cannot be empty for source database", "Error connecting to server",
-						JOptionPane.ERROR_MESSAGE);
-				return null;
-			}
-			if (sourceDelimiterField.getText().toLowerCase().equals("tab"))
-				dbSettings.delimiter = '\t';
-			else
-				dbSettings.delimiter = sourceDelimiterField.getText().charAt(0);
-		} else {
-			dbSettings.dataType = DbSettings.DATABASE;
-			dbSettings.user = sourceUserField.getText();
-			dbSettings.password = sourcePasswordField.getText();
-			dbSettings.server = sourceServerField.getText();
-			dbSettings.database = sourceDatabaseField.getText().trim().length() == 0 ? null : sourceDatabaseField.getText();
-			if (sourceType.getSelectedItem().toString().equals("MySQL"))
-				dbSettings.dbType = DbType.MYSQL;
-			else if (sourceType.getSelectedItem().toString().equals("Oracle"))
-				dbSettings.dbType = DbType.ORACLE;
-			else if (sourceType.getSelectedItem().toString().equals("PostgreSQL"))
-				dbSettings.dbType = DbType.POSTGRESQL;
-			else if (sourceType.getSelectedItem().toString().equals("Redshift"))
-				dbSettings.dbType = DbType.REDSHIFT;
-			else if (sourceType.getSelectedItem().toString().equals("SQL Server")) {
-				dbSettings.dbType = DbType.MSSQL;
-				if (sourceUserField.getText().length() != 0) { // Not using windows authentication
-					String[] parts = sourceUserField.getText().split("/");
-					if (parts.length == 2) {
-						dbSettings.user = parts[1];
-						dbSettings.domain = parts[0];
-					}
-				}
-			} if (sourceType.getSelectedItem().toString().equals("PDW")) {
-				dbSettings.dbType = DbType.PDW;
-				if (sourceUserField.getText().length() != 0) { // Not using windows authentication
-					String[] parts = sourceUserField.getText().split("/");
-					if (parts.length == 2) {
-						dbSettings.user = parts[1];
-						dbSettings.domain = parts[0];
-					}
-				}
-			} else if (sourceType.getSelectedItem().toString().equals("MS Access"))
-				dbSettings.dbType = DbType.MSACCESS;
-			else if (sourceType.getSelectedItem().toString().equals("Teradata"))
-				dbSettings.dbType = DbType.TERADATA;
+		if (sourceType.getSelectedItem().toString().equals(ResourceType.DELIMITED.label)
+				&& sourceDelimiterField.getText().length() == 0) {
+			JOptionPane.showMessageDialog(frame, "Delimiter field cannot be empty for source database",
+					"Error connecting to server", JOptionPane.ERROR_MESSAGE);
+			return null;
 		}
-		return dbSettings;
+
+		String database = sourceDatabaseField.getText().trim().length() == 0 ? null : sourceDatabaseField.getText();
+		return new DbSettings(
+				sourceType.getSelectedItem().toString(),
+				sourceUserField.getText(),
+				sourcePasswordField.getText(),
+				sourceServerField.getText(),
+				sourceDelimiterField.getText(),
+				database
+				);
 	}
 
 	private void testConnection(DbSettings dbSettings) {
+
 		if (dbSettings.dataType == DbSettings.CSVFILES) {
 			if (new File(folderField.getText()).exists()) {
 				String message = "Folder " + folderField.getText() + " found";
@@ -819,72 +683,25 @@ public class WhiteRabbitMain implements ActionListener {
 	}
 
 	private DbSettings getTargetDbSettings() {
-		DbSettings dbSettings = new DbSettings();
-		if (targetType.getSelectedItem().equals("Delimited text files")) {
-			dbSettings.dataType = DbSettings.CSVFILES;
-
-			switch((String) targetCSVFormat.getSelectedItem()) {
-				case "Default (comma, CRLF)":
-					dbSettings.csvFormat = CSVFormat.DEFAULT;
-					break;
-				case "RFC4180":
-					dbSettings.csvFormat = CSVFormat.RFC4180;
-					break;
-				case "Excel CSV":
-					dbSettings.csvFormat = CSVFormat.EXCEL;
-					break;
-				case "TDF (tab, CRLF)":
-					dbSettings.csvFormat = CSVFormat.TDF;
-					break;
-				case "MySQL (tab, LF)":
-					dbSettings.csvFormat = CSVFormat.MYSQL;
-					break;
-				default:
-					dbSettings.csvFormat = CSVFormat.RFC4180;
-			}
-
-		} else {
-			dbSettings.dataType = DbSettings.DATABASE;
-			dbSettings.user = targetUserField.getText();
-			dbSettings.password = targetPasswordField.getText();
-			dbSettings.server = targetServerField.getText();
-			dbSettings.database = targetDatabaseField.getText();
-			if (targetType.getSelectedItem().toString().equals("MySQL"))
-				dbSettings.dbType = DbType.MYSQL;
-			else if (targetType.getSelectedItem().toString().equals("Oracle"))
-				dbSettings.dbType = DbType.ORACLE;
-			else if (sourceType.getSelectedItem().toString().equals("PostgreSQL"))
-				dbSettings.dbType = DbType.POSTGRESQL;
-			else if (sourceType.getSelectedItem().toString().equals("SQL Server")) {
-				dbSettings.dbType = DbType.MSSQL;
-				if (sourceUserField.getText().length() != 0) { // Not using windows authentication
-					String[] parts = sourceUserField.getText().split("/");
-					if (parts.length == 2) {
-						dbSettings.user = parts[1];
-						dbSettings.domain = parts[0];
-					}
-				}
-			} else if (sourceType.getSelectedItem().toString().equals("PDW")) {
-				dbSettings.dbType = DbType.PDW;
-				if (sourceUserField.getText().length() != 0) { // Not using windows authentication
-					String[] parts = sourceUserField.getText().split("/");
-					if (parts.length == 2) {
-						dbSettings.user = parts[1];
-						dbSettings.domain = parts[0];
-					}
-				}
-			}
-
-			if (dbSettings.database.trim().length() == 0) {
-				String message = "Please specify a name for the target database";
-				JOptionPane.showMessageDialog(frame, StringUtilities.wordWrap(message, 80), "Database error", JOptionPane.ERROR_MESSAGE);
-				return null;
-			}
+		if (!targetType.getSelectedItem().toString().equals(ResourceType.DELIMITED.label)
+				&& targetDatabaseField.getText().trim().length() == 0) {
+			String message = "Please specify a name for the target database";
+			JOptionPane.showMessageDialog(frame, StringUtilities.wordWrap(message, 80), "Database error", JOptionPane.ERROR_MESSAGE);
+			return null;
 		}
-		return dbSettings;
+
+		return DbSettings.createInstanceFromTargetFields(
+				targetType.getSelectedItem().toString(),
+				targetUserField.getText(),
+				targetPasswordField.getText(),
+				targetServerField.getText(),
+				sourceDelimiterField.getText(),
+				targetDatabaseField.getText()
+		);
 	}
 
 	private void scanRun() {
+	    boolean sourceIsFiles = sourceType.getSelectedItem().toString().equals(ResourceType.DELIMITED.label);
 		if (tables.size() == 0) {
 			if (sourceIsFiles) {
 				String message = "No files selected for scanning";
@@ -1060,7 +877,6 @@ public class WhiteRabbitMain implements ActionListener {
 			case ACTION_CMD_HELP:
 				doOpenWiki();
 				break;
-
 		}
 	}
 
