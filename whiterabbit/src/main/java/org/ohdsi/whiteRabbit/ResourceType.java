@@ -1,7 +1,5 @@
 package org.ohdsi.whiteRabbit;
 
-import java.util.ArrayList;
-
 public enum ResourceType {
     DELIMITED("Delimited text files"),
     MYSQL("MySQL"),
@@ -19,10 +17,11 @@ public enum ResourceType {
         this.label = label;
     }
 
-    public static ArrayList<String> getAllLabels(){
-        ArrayList<String> labels = new ArrayList<>();
-        for(ResourceType dt: ResourceType.values()) {
-            labels.add(dt.label);
+    public static String[] getAllLabels() {
+        ResourceType[] values = values();
+        String[] labels = new String[values.length];
+        for (int i = 0; i < values.length; i++) {
+            labels[i] = values[i].label;
         }
         return labels;
     }

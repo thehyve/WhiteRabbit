@@ -17,30 +17,12 @@
  ******************************************************************************/
 package org.ohdsi.whiteRabbit;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Desktop;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.GridLayout;
-import java.awt.Image;
-import java.awt.MediaTracker;
-import java.awt.Toolkit;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Vector;
+import org.ohdsi.databases.RichConnection;
+import org.ohdsi.utilities.DirectoryUtilities;
+import org.ohdsi.utilities.StringUtilities;
+import org.ohdsi.utilities.files.IniFile;
+import org.ohdsi.whiteRabbit.fakeDataGenerator.FakeDataGenerator;
+import org.ohdsi.whiteRabbit.scan.SourceDataScan;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -69,15 +51,29 @@ import javax.swing.border.TitledBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
-
-import org.apache.commons.csv.CSVFormat;
-import org.ohdsi.databases.DbType;
-import org.ohdsi.databases.RichConnection;
-import org.ohdsi.utilities.DirectoryUtilities;
-import org.ohdsi.utilities.StringUtilities;
-import org.ohdsi.utilities.files.IniFile;
-import org.ohdsi.whiteRabbit.fakeDataGenerator.FakeDataGenerator;
-import org.ohdsi.whiteRabbit.scan.SourceDataScan;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Desktop;
+import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.GridLayout;
+import java.awt.Image;
+import java.awt.MediaTracker;
+import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Vector;
 
 /**
  * This is the WhiteRabbit main class
@@ -172,18 +168,19 @@ public class WhiteRabbitMain implements ActionListener {
 		return tabbedPane;
 	}
 
+
     private void updateFieldProperties(String dataType,
                                       JTextField serverField,
                                       JTextField userField,
                                       JTextField passwordField,
                                       JTextField databaseField) {
-        boolean isFiles = dataType.equals(ResourceType.DELIMITED.label);
-        serverField.setEnabled(!isFiles);
-        userField.setEnabled(!isFiles);
-        passwordField.setEnabled(!isFiles);
-        databaseField.setEnabled(!isFiles);
+		boolean isDatabase = !dataType.equals(ResourceType.DELIMITED.label);
+        serverField.setEnabled(isDatabase);
+        userField.setEnabled(isDatabase);
+        passwordField.setEnabled(isDatabase);
+        databaseField.setEnabled(isDatabase);
 
-        if (!isFiles && dataType.equals(ResourceType.ORACLE.label)) {
+        if (dataType.equals(ResourceType.ORACLE.label)) {
             serverField.setToolTipText("For Oracle servers this field contains the SID, servicename, " +
                     "and optionally the port: '<host>/<sid>', '<host>:<port>/<sid>', " +
                     "'<host>/<service name>', or '<host>:<port>/<service name>'");
@@ -192,14 +189,14 @@ public class WhiteRabbitMain implements ActionListener {
                     "corresponding to the user");
             databaseField.setToolTipText("For Oracle servers this field contains the schema (i.e. 'user' in " +
                     "Oracle terms) containing the source tables");
-        } else if (!isFiles && dataType.equals(ResourceType.POSTGRESQL.label)) {
+        } else if (dataType.equals(ResourceType.POSTGRESQL.label)) {
             serverField.setToolTipText("For PostgreSQL servers this field contains the host name and database " +
                     "name (<host>/<database>)");
             userField.setToolTipText("The user used to log in to the server");
             passwordField.setToolTipText("The password used to log in to the server");
             databaseField.setToolTipText("For PostgreSQL servers this field contains the schema containing " +
                     "the source tables");
-        } else if (!isFiles) {
+        } else if (isDatabase) {
             serverField.setToolTipText("This field contains the name or IP address of the database server");
             if (dataType.equals(ResourceType.MSSQL.label))
                 userField.setToolTipText("The user used to log in to the server. Optionally, the domain can " +
@@ -241,7 +238,7 @@ public class WhiteRabbitMain implements ActionListener {
 		sourcePanel.setLayout(new GridLayout(0, 2));
 		sourcePanel.setBorder(BorderFactory.createTitledBorder("Source data location"));
 		sourcePanel.add(new JLabel("Data type"));
-        sourceType = new JComboBox<String>(ResourceType.getAllLabels().toArray(new String[0]));
+        sourceType = new JComboBox<String>(ResourceType.getAllLabels());
 		sourceType.setToolTipText("Select the type of source data available");
 
 		sourceType.addItemListener((ItemEvent arg0) -> {
