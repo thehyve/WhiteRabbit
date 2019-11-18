@@ -17,6 +17,8 @@
  ******************************************************************************/
 package org.ohdsi.rabbitInAHat.dataModel;
 
+import java.util.List;
+
 public class Field implements MappableItem {
 
 	private static final long	serialVersionUID	= 3687778470032619497L;
@@ -32,6 +34,7 @@ public class Field implements MappableItem {
 	private Double				fractionEmpty;
 	private Integer				uniqueCount;
 	private Double				fractionUnique;
+	private List<ConceptsMap.Concept> conceptIdHints;
 
 	public Field(String name, Table table) {
 		this.table = table;
@@ -153,5 +156,13 @@ public class Field implements MappableItem {
 
 	public void setFractionUnique(Double fractionUnique) {
 		this.fractionUnique = fractionUnique;
+	}
+
+	public List<ConceptsMap.Concept> getConceptIdHints() {
+		return conceptIdHints;
+	}
+
+	public void setConceptIdHints(List<ConceptsMap.Concept> conceptIdHints) {
+		this.conceptIdHints = conceptIdHints;
 	}
 }

@@ -79,6 +79,10 @@ public class SourceDataScan {
 	}
 
 	private Map<String, List<FieldInfo>> processDatabase(DbSettings dbSettings) {
+		if (dbSettings.dbType == DbType.BIGQUERY) {
+			// GBQ requires database. Put database value into domain var
+			dbSettings.domain = dbSettings.database;
+		};
 		try (RichConnection connection = new RichConnection(dbSettings.server, dbSettings.domain, dbSettings.user, dbSettings.password, dbSettings.dbType)) {
 			connection.setVerbose(false);
 			connection.use(dbSettings.database);
@@ -144,7 +148,6 @@ public class SourceDataScan {
 				sheetNameLookup.put(tableName, sheetName);
 
 				for (FieldInfo fieldInfo : tableToFieldInfos.get(tableName)) {
-					fieldInfo.wrapUp(); // if not already done
 					Long uniqueCount = fieldInfo.uniqueCount;
 					Double fractionUnique = fieldInfo.getFractionUnique();
                     addRow(overviewSheet, tableNameIndexed, fieldInfo.name, fieldInfo.getTypeDescription(),
@@ -280,6 +283,8 @@ public class SourceDataScan {
 				query = "SELECT * FROM " + table + " ORDER BY RANDOM() LIMIT " + sampleSize;
 			else if (dbType == DbType.MSACCESS)
 				query = "SELECT " + "TOP " + sampleSize + " * FROM [" + table + "]";
+			else if (dbType == DbType.BIGQUERY)
+				query = "SELECT * FROM " + table + " ORDER BY RAND() LIMIT " + sampleSize;
 		}
 		// System.out.println("SQL: " + query);
 		return connection.query(query);
@@ -322,7 +327,9 @@ public class SourceDataScan {
 				query = "SELECT ColumnName, ColumnType FROM dbc.columns WHERE DatabaseName= '" + database.toLowerCase() + "' AND TableName = '"
 						+ table.toLowerCase() + "';";
 			}
-
+			else if (dbType == DbType.BIGQUERY) {
+				query = "SELECT column_name AS COLUMN_NAME, data_type as DATA_TYPE FROM " + database + ".INFORMATION_SCHEMA.COLUMNS WHERE table_name = \"" + table + "\";";
+			}
 			for (org.ohdsi.utilities.files.Row row : connection.query(query)) {
 				row.upperCaseFieldNames();
 				FieldInfo fieldInfo;
