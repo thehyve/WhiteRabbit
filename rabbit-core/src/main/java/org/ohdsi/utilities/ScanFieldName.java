@@ -12,13 +12,13 @@ public interface ScanFieldName {
     String FRACTION_UNIQUE = "Fraction unique";
     String SOURCE_DESCRIPTION = "Description";
     String SOURCE_ALIAS = "Alias";
-//    String AVERAGE = "Average";
-//    String STDEV = "Standard Deviation";
-//    String MIN = "Min";
-//    String Q1 = "25%";
-//    String Q2 = "Median";
-//    String Q3 = "75%";
-//    String MAX = "Max%";
+    String AVERAGE = "Average";
+    String STDEV = "Standard Deviation";
+    String MIN = "Min";
+    String Q1 = "25%";
+    String Q2 = "Median";
+    String Q3 = "75%";
+    String MAX = "Max%";
 }
 
 
