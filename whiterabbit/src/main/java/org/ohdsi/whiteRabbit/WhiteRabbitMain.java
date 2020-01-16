@@ -149,7 +149,6 @@ public class WhiteRabbitMain implements ActionListener {
 	}
 
 	private void launchCommandLine(String iniFileName) {
-		// TODO: add option to scan sas7bdat from command line, using ini file
 		IniFile iniFile = new IniFile(iniFileName);
 		DbSettings dbSettings = new DbSettings();
 		if (iniFile.get("DATA_TYPE").equalsIgnoreCase("Delimited text files")) {
@@ -158,6 +157,8 @@ public class WhiteRabbitMain implements ActionListener {
 				dbSettings.delimiter = '\t';
 			else
 				dbSettings.delimiter = iniFile.get("DELIMITER").charAt(0);
+		} else if (iniFile.get("DATA_TYPE").equalsIgnoreCase("SAS7bdat")) {
+			dbSettings.dataType = DbSettings.SASFILES;
 		} else {
 			dbSettings.dataType = DbSettings.DATABASE;
 			dbSettings.user = iniFile.get("USER_NAME");
@@ -271,9 +272,11 @@ public class WhiteRabbitMain implements ActionListener {
 		sourceType = new JComboBox<>(new String[] { "Delimited text files", "SAS7bdat", "MySQL", "Oracle", "SQL Server", "PostgreSQL", "MS Access", "PDW", "Redshift", "Teradata", "BigQuery" });
 		sourceType.setToolTipText("Select the type of source data available");
 		sourceType.addItemListener(itemEvent -> {
-			sourceIsFiles = itemEvent.getItem().toString().equals("Delimited text files");
-			sourceIsSas = itemEvent.getItem().toString().equals("SAS7bdat");
+			String selectedSourceType = itemEvent.getItem().toString();
+			sourceIsFiles = selectedSourceType.equals("Delimited text files");
+			sourceIsSas = selectedSourceType.equals("SAS7bdat");
 			boolean sourceIsDatabase = !(sourceIsFiles || sourceIsSas);
+
 			sourceServerField.setEnabled(sourceIsDatabase);
 			sourceUserField.setEnabled(sourceIsDatabase);
 			sourcePasswordField.setEnabled(sourceIsDatabase);
@@ -281,24 +284,24 @@ public class WhiteRabbitMain implements ActionListener {
 			sourceDelimiterField.setEnabled(sourceIsFiles);
 			addAllButton.setEnabled(sourceIsDatabase);
 
-			if (sourceIsDatabase && itemEvent.getItem().toString().equals("Oracle")) {
+			if (sourceIsDatabase && selectedSourceType.equals("Oracle")) {
 				sourceServerField.setToolTipText("For Oracle servers this field contains the SID, servicename, and optionally the port: '<host>/<sid>', '<host>:<port>/<sid>', '<host>/<service name>', or '<host>:<port>/<service name>'");
 				sourceUserField.setToolTipText("For Oracle servers this field contains the name of the user used to log in");
 				sourcePasswordField.setToolTipText("For Oracle servers this field contains the password corresponding to the user");
 				sourceDatabaseField.setToolTipText("For Oracle servers this field contains the schema (i.e. 'user' in Oracle terms) containing the source tables");
-			} else if (sourceIsDatabase && itemEvent.getItem().toString().equals("PostgreSQL")) {
+			} else if (sourceIsDatabase && selectedSourceType.equals("PostgreSQL")) {
 				sourceServerField.setToolTipText("For PostgreSQL servers this field contains the host name and database name (<host>/<database>)");
 				sourceUserField.setToolTipText("The user used to log in to the server");
 				sourcePasswordField.setToolTipText("The password used to log in to the server");
 				sourceDatabaseField.setToolTipText("For PostgreSQL servers this field contains the schema containing the source tables");
-			} else if (sourceIsDatabase && itemEvent.getItem().toString().equals("BigQuery")) {
+			} else if (sourceIsDatabase && selectedSourceType.equals("BigQuery")) {
 				sourceServerField.setToolTipText("GBQ SA & UA:  ProjectID");
 				sourceUserField.setToolTipText("GBQ SA only: OAuthServiceAccountEMAIL");
 				sourcePasswordField.setToolTipText("GBQ SA only: OAuthPvtKeyPath");
 				sourceDatabaseField.setToolTipText("GBQ SA & UA: Data Set within ProjectID");
 			} else if (sourceIsDatabase) {
 				sourceServerField.setToolTipText("This field contains the name or IP address of the database server");
-				if (itemEvent.getItem().toString().equals("SQL Server")) {
+				if (selectedSourceType.equals("SQL Server")) {
 					sourceUserField.setToolTipText("The user used to log in to the server. Optionally, the domain can be specified as <domain>/<user> (e.g. 'MyDomain/Joe')");
 				} else {
 					sourceUserField.setToolTipText("The user used to log in to the server");
