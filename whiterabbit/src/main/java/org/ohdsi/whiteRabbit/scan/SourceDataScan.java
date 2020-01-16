@@ -606,8 +606,13 @@ public class SourceDataScan {
 				return;
 			}
 
+			// To prevent low count values showing, only calculate if enough rows scanned and column not unique
+			if (this.nProcessed < 100 || this.uniqueCount == this.nProcessed) {
+				return;
+			}
+
 			if (tooManyValues) {
-				System.out.println("Estimations! Increase 'maxValues' for a better estimate");
+				System.out.println("Numeric metrics are estimations! Increase 'maxValues' for a better estimate");
 			}
 
 			// Unpack the values to  a list of pairs; calculate sum, total count and mean
