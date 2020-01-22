@@ -115,40 +115,6 @@ public class FakeDataGenerator {
 		connection.execute(sql.toString());
 	}
 
-	// private String correctType(Field field) {
-	// String type = field.getType().toUpperCase();
-	// if (field.getMaxLength() == 0)
-	// field.setMaxLength(256);
-	// if (dbType == DbType.MYSQL) {
-	// if (isVarChar(type))
-	// return "VARCHAR(" + field.getMaxLength() + ")";
-	// else if (isInt(type))
-	// return "BIGINT";
-	// else if (isNumber(type))
-	// return "DOUBLE";
-	// else if (isText(type))
-	// return "TEXT";
-	// else if (type.equals("EMPTY"))
-	// return "VARCHAR(255)";
-	// else
-	// return type;
-	// } else if (dbType == DbType.POSTGRESQL) {
-	// if (isVarChar(type))
-	// return "VARCHAR(" + field.getMaxLength() + ")";
-	// else if (isInt(type))
-	// return "BIGINT";
-	// else if (isNumber(type))
-	// return "DOUBLE";
-	// else if (isText(type))
-	// return "TEXT";
-	// else if (type.equals("EMPTY"))
-	// return "VARCHAR(255)";
-	// else
-	// return type;
-	// }
-	// return null;
-	// }
-
 	private boolean isVarChar(String type) {
 		type = type.toUpperCase();
 		return (type.equals("VARCHAR") || type.equals("VARCHAR2") || type.equals("CHARACTER VARYING"));
@@ -159,16 +125,6 @@ public class FakeDataGenerator {
 		return (type.equals("INT") || type.equals("INTEGER") || type.equals("BIGINT"));
 	}
 
-	// private boolean isNumber(String type) {
-	// type = type.toUpperCase();
-	// return (type.equals("REAL") || type.equals("DOUBLE") || type.equals("NUMBER") || type.equals("FLOAT") || type.equals("DOUBLE PRECISION"));
-	// }
-	//
-	// private boolean isText(String type) {
-	// type = type.toUpperCase();
-	// return (type.equals("TEXT") || type.equals("CLOB"));
-	// }
-
 	private class ValueGenerator {
 
 		private String[]	values;
@@ -177,7 +133,7 @@ public class FakeDataGenerator {
 		private String		type;
 		private int			length;
 		private int			cursor;
-		private int			generatorType	= REGULAR;
+		private int			generatorType;
 		private Random		random			= new Random();
 
 		public ValueGenerator(Field field) {
@@ -203,14 +159,6 @@ public class FakeDataGenerator {
 				}
 				generatorType = REGULAR;
 			}
-		}
-
-		private String[] convertToArray(Set<String> set) {
-			String[] array = new String[set.size()];
-			int i = 0;
-			for (String item : set)
-				array[i++] = item;
-			return array;
 		}
 
 		public String generate() {
