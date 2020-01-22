@@ -36,14 +36,20 @@ public class FakeDataGenerator {
 	private RichConnection					connection;
 	private int								targetType;
 	private int								maxRowsPerTable	= 1000;
+	private boolean firstRowIsKey;
 
 	private static int						REGULAR			= 0;
 	private static int						RANDOM			= 1;
 	private static int						PRIMARY_KEY		= 2;
 
 	public void generateData(DbSettings dbSettings, int maxRowsPerTable, String filename, String folder) {
+		generateData(dbSettings, maxRowsPerTable, filename, folder);
+	}
+
+	public void generateData(DbSettings dbSettings, int maxRowsPerTable, String filename, String folder, boolean firstRowIsKey) {
 		this.maxRowsPerTable = maxRowsPerTable;
 		this.targetType = dbSettings.dataType;
+		this.firstRowIsKey = firstRowIsKey;
 
 		StringUtilities.outputWithTime("Starting creation of fake data");
 		System.out.println("Loading scan report from " + filename);
@@ -87,10 +93,10 @@ public class FakeDataGenerator {
 				return new ArrayList<>();
 			}
 			fieldNames[i] = field.getName();
-			ValueGenerator valueGenerator = new ValueGenerator(field);
+			ValueGenerator valueGenerator = new ValueGenerator(field, this.firstRowIsKey && i == 0);
 			valueGenerators[i] = valueGenerator;
-			if (valueGenerator.generatorType == PRIMARY_KEY && valueGenerator.values.length < size)
-				size = valueGenerator.values.length;
+//			if (valueGenerator.generatorType == PRIMARY_KEY && valueGenerator.values.length < size)
+//				size = valueGenerator.values.length;
 		}
 		List<Row> rows = new ArrayList<Row>();
 		for (int i = 0; i < size; i++) {
@@ -132,14 +138,18 @@ public class FakeDataGenerator {
 		private int			totalFrequency;
 		private String		type;
 		private int			length;
-		private int			cursor;
+		private int			pk_increment;
 		private int			generatorType;
 		private Random		random			= new Random();
 
-		public ValueGenerator(Field field) {
+		public ValueGenerator(Field field, boolean forcePrimaryKey) {
 			String[][] valueCounts = field.getValueCounts();
 			type = field.getType();
-			if (valueCounts[0][0].equals("List truncated...")) {
+			if (forcePrimaryKey) {
+				length = field.getMaxLength();
+				generatorType = PRIMARY_KEY;
+				pk_increment = ((Double) Math.pow(10, length-1)).intValue();
+			} else if (valueCounts[0][0].equals("List truncated...")) {
 				length = field.getMaxLength();
 				generatorType = RANDOM;
 			} else {
@@ -182,11 +192,7 @@ public class FakeDataGenerator {
 				else
 					return "";
 			} else if (generatorType == PRIMARY_KEY) { // Pick the next value:
-				String value = values[cursor];
-				cursor++;
-				if (cursor >= values.length)
-					cursor = 0;
-				return value;
+				return String.valueOf(pk_increment++);
 			} else { // Sample from values:
 				int index = random.nextInt(totalFrequency);
 				int i = 0;
