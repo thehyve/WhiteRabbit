@@ -44,7 +44,7 @@ public class FakeDataGenerator {
 	private static int						PRIMARY_KEY		= 2;
 
 	public void generateData(DbSettings dbSettings, int maxRowsPerTable, String filename, String folder) {
-		generateData(dbSettings, maxRowsPerTable, filename, folder);
+		generateData(dbSettings, maxRowsPerTable, filename, folder, false, false);
 	}
 
 	public void generateData(DbSettings dbSettings, int maxRowsPerTable, String filename, String folder, boolean firstRowIsKey, boolean doUniformSampling) {
@@ -150,7 +150,7 @@ public class FakeDataGenerator {
 			if (forcePrimaryKey) {
 				length = field.getMaxLength();
 				generatorType = PRIMARY_KEY;
-				pk_increment = ((Double) Math.pow(10, length-1)).intValue();
+				pk_increment = 0;
 			} else if (valueCounts[0][0].equals("List truncated...")) {
 				length = field.getMaxLength();
 				generatorType = RANDOM;
@@ -199,7 +199,7 @@ public class FakeDataGenerator {
 				else
 					return "";
 			} else if (generatorType == PRIMARY_KEY) { // Pick the next value:
-				return String.valueOf(pk_increment++);
+				return String.valueOf(++pk_increment);
 			} else { // Sample from values:
 				int index = random.nextInt(totalFrequency);
 				int i = 0;
