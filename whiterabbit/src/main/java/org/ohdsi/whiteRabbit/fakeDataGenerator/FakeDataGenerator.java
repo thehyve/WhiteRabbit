@@ -17,33 +17,41 @@
  ******************************************************************************/
 package org.ohdsi.whiteRabbit.fakeDataGenerator;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 
 import org.ohdsi.databases.RichConnection;
 import org.ohdsi.rabbitInAHat.dataModel.Database;
 import org.ohdsi.rabbitInAHat.dataModel.Field;
 import org.ohdsi.rabbitInAHat.dataModel.Table;
+import org.ohdsi.rabbitInAHat.dataModel.ValueCounts;
 import org.ohdsi.utilities.StringUtilities;
+import org.ohdsi.utilities.collections.OneToManySet;
 import org.ohdsi.utilities.files.Row;
 import org.ohdsi.utilities.files.WriteCSVFileWithHeader;
 import org.ohdsi.whiteRabbit.DbSettings;
 
 public class FakeDataGenerator {
 
-	private RichConnection					connection;
-	private int								targetType;
-	private int								maxRowsPerTable	= 1000;
+	private RichConnection connection;
+	private int targetType;
+	private int maxRowsPerTable = 1000;
+	private boolean firstFieldAsKey;
+	private boolean doUniformSampling;
 
-	private static int						REGULAR			= 0;
-	private static int						RANDOM			= 1;
-	private static int						PRIMARY_KEY		= 2;
+
+	private static int REGULAR = 0;
+	private static int RANDOM = 1;
+	private static int PRIMARY_KEY = 2;
 
 	public void generateData(DbSettings dbSettings, int maxRowsPerTable, String filename, String folder) {
+		generateData(dbSettings, maxRowsPerTable, filename, folder, false, false);
+	}
+
+	public void generateData(DbSettings dbSettings, int maxRowsPerTable, String filename, String folder, boolean firstFieldAsKey, boolean doUniformSampling) {
 		this.maxRowsPerTable = maxRowsPerTable;
 		this.targetType = dbSettings.dataType;
+		this.firstFieldAsKey = firstFieldAsKey;
+		this.doUniformSampling = doUniformSampling;
 
 		StringUtilities.outputWithTime("Starting creation of fake data");
 		System.out.println("Loading scan report from " + filename);
@@ -76,21 +84,21 @@ public class FakeDataGenerator {
 	}
 
 	private List<Row> generateRows(Table table) {
+		if (table.getRowCount() == 0 || table.getRowsCheckedCount() == 0) {
+			// Empty table, return empty list (writes empty file)
+			return new ArrayList<>();
+		}
+
 		String[] fieldNames = new String[table.getFields().size()];
 		ValueGenerator[] valueGenerators = new ValueGenerator[table.getFields().size()];
 		int size = maxRowsPerTable;
 		for (int i = 0; i < table.getFields().size(); i++) {
 			Field field = table.getFields().get(i);
-			// If a field in the table is empty, the whole table is empty.
-			// Return empty list (writes empty file)
-			if (field.getType().equals("empty")) {
-				return new ArrayList<>();
-			}
 			fieldNames[i] = field.getName();
-			ValueGenerator valueGenerator = new ValueGenerator(field);
+			ValueGenerator valueGenerator = new ValueGenerator(field, this.firstFieldAsKey && i == 0);
 			valueGenerators[i] = valueGenerator;
-			if (valueGenerator.generatorType == PRIMARY_KEY && valueGenerator.values.length < size)
-				size = valueGenerator.values.length;
+//			if (valueGenerator.generatorType == PRIMARY_KEY && valueGenerator.values.length < size)
+//				size = valueGenerator.values.length;
 		}
 		List<Row> rows = new ArrayList<Row>();
 		for (int i = 0; i < size; i++) {
@@ -115,40 +123,6 @@ public class FakeDataGenerator {
 		connection.execute(sql.toString());
 	}
 
-	// private String correctType(Field field) {
-	// String type = field.getType().toUpperCase();
-	// if (field.getMaxLength() == 0)
-	// field.setMaxLength(256);
-	// if (dbType == DbType.MYSQL) {
-	// if (isVarChar(type))
-	// return "VARCHAR(" + field.getMaxLength() + ")";
-	// else if (isInt(type))
-	// return "BIGINT";
-	// else if (isNumber(type))
-	// return "DOUBLE";
-	// else if (isText(type))
-	// return "TEXT";
-	// else if (type.equals("EMPTY"))
-	// return "VARCHAR(255)";
-	// else
-	// return type;
-	// } else if (dbType == DbType.POSTGRESQL) {
-	// if (isVarChar(type))
-	// return "VARCHAR(" + field.getMaxLength() + ")";
-	// else if (isInt(type))
-	// return "BIGINT";
-	// else if (isNumber(type))
-	// return "DOUBLE";
-	// else if (isText(type))
-	// return "TEXT";
-	// else if (type.equals("EMPTY"))
-	// return "VARCHAR(255)";
-	// else
-	// return type;
-	// }
-	// return null;
-	// }
-
 	private boolean isVarChar(String type) {
 		type = type.toUpperCase();
 		return (type.equals("VARCHAR") || type.equals("VARCHAR2") || type.equals("CHARACTER VARYING"));
@@ -159,58 +133,49 @@ public class FakeDataGenerator {
 		return (type.equals("INT") || type.equals("INTEGER") || type.equals("BIGINT"));
 	}
 
-	// private boolean isNumber(String type) {
-	// type = type.toUpperCase();
-	// return (type.equals("REAL") || type.equals("DOUBLE") || type.equals("NUMBER") || type.equals("FLOAT") || type.equals("DOUBLE PRECISION"));
-	// }
-	//
-	// private boolean isText(String type) {
-	// type = type.toUpperCase();
-	// return (type.equals("TEXT") || type.equals("CLOB"));
-	// }
-
 	private class ValueGenerator {
 
-		private String[]	values;
-		private int[]		cumulativeFrequency;
-		private int			totalFrequency;
-		private String		type;
-		private int			length;
-		private int			cursor;
-		private int			generatorType	= REGULAR;
-		private Random		random			= new Random();
+		private String[] values;
+		private int[] cumulativeFrequency;
+		private int totalFrequency;
+		private String type;
+		private int length;
+		private int pk_cursor;
+		private int generatorType;
+		private Random random = new Random();
 
-		public ValueGenerator(Field field) {
-			String[][] valueCounts = field.getValueCounts();
+		public ValueGenerator(Field field, boolean forcePrimaryKey) {
+			ValueCounts valueCounts = field.getValueCounts();
 			type = field.getType();
-			if (valueCounts[0][0].equals("List truncated...")) {
+
+			if (valueCounts.isEmpty()) {
 				length = field.getMaxLength();
 				generatorType = RANDOM;
 			} else {
-				int length = valueCounts.length;
-				if (valueCounts[length - 1][1].equals("")) // Last value could be "List truncated..."
-					length--;
+				int length = valueCounts.size();
 
+				int runningTotal = 0;
 				values = new String[length];
 				cumulativeFrequency = new int[length];
-				totalFrequency = 0;
 				for (int i = 0; i < length; i++) {
-					int frequency = (int) (Double.parseDouble(valueCounts[i][1]));
-					totalFrequency += frequency;
-
-					values[i] = valueCounts[i][0];
-					cumulativeFrequency[i] = totalFrequency;
+					values[i] = valueCounts.get(i).getValue();
+					int frequency;
+					if (doUniformSampling) {
+						frequency = 1;
+					} else {
+						frequency = valueCounts.get(i).getFrequency();
+					}
+					runningTotal += frequency;
+					cumulativeFrequency[i] = runningTotal;
 				}
+				totalFrequency = runningTotal;
 				generatorType = REGULAR;
 			}
-		}
 
-		private String[] convertToArray(Set<String> set) {
-			String[] array = new String[set.size()];
-			int i = 0;
-			for (String item : set)
-				array[i++] = item;
-			return array;
+			if (forcePrimaryKey) {
+				generatorType = PRIMARY_KEY;
+				pk_cursor = 0;
+			}
 		}
 
 		public String generate() {
@@ -234,15 +199,17 @@ public class FakeDataGenerator {
 				else
 					return "";
 			} else if (generatorType == PRIMARY_KEY) { // Pick the next value:
-				String value = values[cursor];
-				cursor++;
-				if (cursor >= values.length)
-					cursor = 0;
+				String value = values[pk_cursor];
+				pk_cursor++;
+				if (pk_cursor >= values.length) {
+					// Loop back to the first (not primary key anymore!)
+					pk_cursor = 0;
+				}
 				return value;
 			} else { // Sample from values:
 				int index = random.nextInt(totalFrequency);
 				int i = 0;
-				while (i < values.length - 1 && cumulativeFrequency[i] < index)
+				while (i < values.length - 1 && cumulativeFrequency[i] <= index)
 					i++;
 				if (!type.equals("VarChar") && values[i].trim().length() == 0)
 					return "";
